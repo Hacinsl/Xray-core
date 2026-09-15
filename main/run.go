@@ -28,23 +28,45 @@ var cmdRun = &base.Command{
 	Long: `
 Run Xray with config, the default command.
 
-The -config=file, -c=file flags set the config files for
-Xray. Multiple assign is accepted.
+Arguments:
 
-The -confdir=dir flag sets a dir with multiple json config
+    -c, -config
+        Set config files for Xray. Multiple assign is accepted.
 
-The -format=json flag sets the format of config files.
-Default "auto".
+    -confdir
+        Set a dir with multiple json config.
 
-The config root env object sets process environment variables after all config
-files are parsed. Variables needed to locate or parse config files must be set
-in the process environment before Xray starts.
+    -format
+        Set the format of config files. Default "auto".
 
-The -test flag tells Xray to test config files only,
-without launching the server.
+    -test
+        Test config files only, without launching the server.
 
-The -dump flag tells Xray to print the merged config.
-	`,
+    -dump
+        Dump merged config only, without launching Xray server.
+
+Example:
+
+    {{.Exec}} {{.LongName}} -c config.json
+    {{.Exec}} {{.LongName}} -confdir /etc/xray
+    {{.Exec}} {{.LongName}} -test -c config.json
+`,
+	// The -config=file, -c=file flags set the config files for
+	// Xray. Multiple assign is accepted.
+
+	// The -confdir=dir flag sets a dir with multiple json config
+
+	// The -format=json flag sets the format of config files.
+	// Default "auto".
+
+	// The config root env object sets process environment variables after all config
+	// files are parsed. Variables needed to locate or parse config files must be set
+	// in the process environment before Xray starts.
+
+	// The -test flag tells Xray to test config files only,
+	// without launching the server.
+
+	// The -dump flag tells Xray to print the merged config.
 }
 
 func init() {
@@ -62,6 +84,9 @@ var (
 	/* We have to do this here because Golang's Test will also need to parse flag, before
 	 * main func in this file is run.
 	 */
+
+	// But this project doesn't use any global flag at all. cmdRun's arguments will be parsed by itself.
+	// These variables should exist here because they are referenced by functions other than `executeRun`.
 	_ = func() bool {
 		cmdRun.Flag.Var(&configFiles, "config", "Config path for Xray.")
 		cmdRun.Flag.Var(&configFiles, "c", "Short alias of -config")
@@ -81,20 +106,25 @@ func executeRun(cmd *base.Command, args []string) {
 	printVersion()
 	server, err := startXray()
 	if err != nil {
-		fmt.Println("Failed to start:", err)
+		errors.LogDefaultError("Failed to initialize: ", err)
+		// fmt.Println("Failed to start:", err)
 		// Configuration error. Exit with a special value to prevent systemd from restarting.
 		os.Exit(23)
 	}
 
+	// server.(*core.Instance).PrintFeature()
+
 	if *test {
-		fmt.Println("Configuration OK.")
+		errors.LogDefaultInfo("Configuration OK.")
+		// fmt.Println("Configuration OK.")
 		os.Exit(0)
 	}
 
 	if err := server.Start(); err != nil {
-		fmt.Println("Failed to start:", err)
+		errors.LogDefaultError("Failed to start: ", err)
 		os.Exit(-1)
 	}
+
 	defer server.Close()
 
 	// Explicitly triggering GC to remove garbage from config loading.
@@ -165,12 +195,13 @@ func readConfDir(dirPath string) {
 func getConfigFilePath(verbose bool) cmdarg.Arg {
 	if dirExists(configDir) {
 		if verbose {
-			log.Println("Using confdir from arg:", configDir)
+			errors.LogDefaultInfo("Using confdir from arg: ", configDir)
 		}
 		readConfDir(configDir)
 	} else if envConfDir := platform.GetConfDirPath(); dirExists(envConfDir) {
 		if verbose {
-			log.Println("Using confdir from env:", envConfDir)
+			// log.Println("Using confdir from env:", envConfDir)
+			errors.LogDefaultInfo("Using confdir from env: ", envConfDir)
 		}
 		readConfDir(envConfDir)
 	}
@@ -185,7 +216,8 @@ func getConfigFilePath(verbose bool) cmdarg.Arg {
 			configFile := filepath.Join(workingDir, "config"+suffix)
 			if fileExists(configFile) {
 				if verbose {
-					log.Println("Using default config: ", configFile)
+					// log.Println("Using default config: ", configFile)
+					errors.LogDefaultInfo("Using default config: ", configFile)
 				}
 				return cmdarg.Arg{configFile}
 			}
@@ -194,13 +226,15 @@ func getConfigFilePath(verbose bool) cmdarg.Arg {
 
 	if configFile := platform.GetConfigurationPath(); fileExists(configFile) {
 		if verbose {
-			log.Println("Using config from env: ", configFile)
+			// log.Println("Using config from env: ", configFile)
+			errors.LogDefaultInfo("Using config from env: ", configFile)
 		}
 		return cmdarg.Arg{configFile}
 	}
 
 	if verbose {
-		log.Println("Using config from STDIN")
+		errors.LogDefaultInfo("Using config from STDIN")
+		// log.Println("Using config from STDIN")
 	}
 	return cmdarg.Arg{"stdin:"}
 }

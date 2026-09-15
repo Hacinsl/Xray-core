@@ -1,6 +1,7 @@
 package log // import "github.com/xtls/xray-core/common/log"
 
 import (
+	"os"
 	"sync"
 
 	"github.com/xtls/xray-core/common/serial"
@@ -32,7 +33,17 @@ func Record(msg Message) {
 	logHandler.Handle(msg)
 }
 
+// DefaultRecord writes a message into log stream.
+func DefaultRecord(msg Message) {
+	if defaultLogHandler != nil {
+		defaultLogHandler.Handle(msg)
+	} else {
+		panic("Log handler is nil when record '" + msg.String() + "'")
+	}
+}
+
 var logHandler syncHandler
+var defaultLogHandler Handler
 
 // RegisterHandler registers a new handler as current log handler. Previous registered handler will be discarded.
 func RegisterHandler(handler Handler) {
@@ -40,6 +51,14 @@ func RegisterHandler(handler Handler) {
 		panic("Log handler is nil")
 	}
 	logHandler.Set(handler)
+}
+
+// RegisterDefaultHandler registers a new handler as the default log handler, which print all logs in console.
+func RegisterDefaultHandler(handler Handler) {
+	if handler == nil {
+		panic("Log handler is nil")
+	}
+	defaultLogHandler = handler
 }
 
 type syncHandler struct {
@@ -53,6 +72,8 @@ func (h *syncHandler) Handle(msg Message) {
 
 	if h.Handler != nil {
 		h.Handler.Handle(msg)
+	} else {
+		os.Stderr.WriteString("Log handler is nil when record '" + msg.String() + "'")
 	}
 }
 

@@ -12,12 +12,14 @@ import (
 	"github.com/xtls/xray-core/transport/internet/udp"
 )
 
-// CreateObject creates a new object based on the given Xray instance and config. The Xray instance may be nil.
+// CreateObject creates a new object based on the given Xray instance and config.
 func CreateObject(v *Instance, config interface{}) (interface{}, error) {
-	ctx := v.ctx
-	if v != nil {
-		ctx = toContext(v.ctx, v)
+	// ctx := v.ctx
+	// ctx := context.Background()
+	if v == nil {
+		return nil, errors.New("Xray instance should not be nil.")
 	}
+	ctx := toContext(v.ctx, v)
 	return common.CreateObject(ctx, config)
 }
 

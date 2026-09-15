@@ -45,13 +45,10 @@ func executeRemoveUsers(cmd *base.Command, args []string) {
 	success := 0
 	for _, email := range emails {
 		fmt.Println("remove user:", email)
+		tmsg := cserial.ToTypedMessage(&handlerService.RemoveUserOperation{Email: email})
 		_, err := client.AlterInbound(ctx, &handlerService.AlterInboundRequest{
-			Tag: tag,
-			Operation: cserial.ToTypedMessage(
-				&handlerService.RemoveUserOperation{
-					Email: email,
-				},
-			),
+			Tag:       tag,
+			Operation: tmsg,
 		})
 		if err == nil {
 			success += 1

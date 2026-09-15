@@ -4,6 +4,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/xtls/xray-core/common/platform"
@@ -27,6 +28,11 @@ type generalLogger struct {
 	done    *done.Instance
 }
 
+type syncLogger struct {
+	mu     sync.Mutex
+	writer Writer
+}
+
 type serverityLogger struct {
 	inner    *generalLogger
 	logLevel Severity
@@ -42,6 +48,32 @@ func NewLogger(logWriterCreator WriterCreator) Handler {
 	}
 }
 
+// NewSyncLogger returns a sync log handler that only support basic messages.
+func NewSyncLogger(creator WriterCreator) Handler {
+	w := creator()
+	if w == nil {
+		w = CreateStdoutLogWriter()() // Use console as fallback.
+	}
+	return &syncLogger{writer: w}
+}
+
+func (l *syncLogger) Handle(msg Message) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	_ = l.writer.Write(msg.String() + platform.LineSeparator())
+}
+
+func (l *syncLogger) Close() error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.writer == nil {
+		return nil
+	}
+	err := l.writer.Close()
+	l.writer = nil
+	return err
+}
+
 func ReplaceWithSeverityLogger(serverity Severity) {
 	w := CreateStdoutLogWriter()
 	g := &generalLogger{
@@ -54,7 +86,8 @@ func ReplaceWithSeverityLogger(serverity Severity) {
 		inner:    g,
 		logLevel: serverity,
 	}
-	RegisterHandler(s)
+	RegisterHandler(s) // This line should be removed once all pre-build configuration log outputs have been migrated to the default logger.
+	RegisterDefaultHandler(s)
 }
 
 func (l *serverityLogger) Handle(msg Message) {
@@ -179,5 +212,6 @@ func CreateFileLogWriter(path string) (WriterCreator, error) {
 }
 
 func init() {
-	RegisterHandler(NewLogger(CreateStdoutLogWriter()))
+	// RegisterHandler(NewSyncLogger(CreateStdoutLogWriter()))
+	RegisterDefaultHandler(NewSyncLogger(CreateStdoutLogWriter()))
 }

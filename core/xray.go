@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"sync"
 
@@ -49,12 +50,17 @@ func (r *resolution) callbackResolution(allFeatures []features.Feature) error {
 	var input []reflect.Value
 	callbackType := callback.Type()
 	for i := 0; i < callbackType.NumIn(); i++ {
-		pt := callbackType.In(i)
-		for _, f := range allFeatures {
-			if reflect.TypeOf(f).AssignableTo(pt) {
-				input = append(input, reflect.ValueOf(f))
-				break
-			}
+		// pt := callbackType.In(i)
+		pt := reflect.PointerTo(callbackType.In(i))
+		// for _, f := range allFeatures {
+		// 	// if reflect.TypeOf(f).AssignableTo(pt) {
+		// 	if reflect.TypeOf(f.Type()) == pt {
+		// 		input = append(input, reflect.ValueOf(f))
+		// 		break
+		// 	}
+		// }
+		if f := getFeature(allFeatures, pt); f != nil {
+			input = append(input, reflect.ValueOf(f))
 		}
 	}
 
@@ -167,8 +173,7 @@ func OptionalFeatures(ctx context.Context, callback interface{}) error {
 func New(config *Config) (*Instance, error) {
 	server := &Instance{ctx: context.Background()}
 
-	done, err := initInstanceWithConfig(config, server)
-	if done {
+	if err := initInstanceWithConfig(config, server); err != nil {
 		return nil, err
 	}
 
@@ -178,17 +183,16 @@ func New(config *Config) (*Instance, error) {
 func NewWithContext(ctx context.Context, config *Config) (*Instance, error) {
 	server := &Instance{ctx: ctx}
 
-	done, err := initInstanceWithConfig(config, server)
-	if done {
+	if err := initInstanceWithConfig(config, server); err != nil {
 		return nil, err
 	}
 
 	return server, nil
 }
 
-func initInstanceWithConfig(config *Config, server *Instance) (bool, error) {
+func initInstanceWithConfig(config *Config, server *Instance) error {
 	if err := platform.ReloadEnvSettings(); err != nil {
-		return true, errors.New("failed to reload environment settings").Base(err)
+		return errors.New("failed to reload environment settings").Base(err)
 	}
 	server.ctx = context.WithValue(server.ctx, "cone",
 		platform.NewEnvFlag(platform.UseCone).GetValue(func() string { return "" }) != "true")
@@ -196,15 +200,15 @@ func initInstanceWithConfig(config *Config, server *Instance) (bool, error) {
 	for _, appSettings := range config.App {
 		settings, err := appSettings.GetInstance()
 		if err != nil {
-			return true, err
+			return err
 		}
 		obj, err := CreateObject(server, settings)
 		if err != nil {
-			return true, err
+			return err
 		}
 		if feature, ok := obj.(features.Feature); ok {
 			if err := server.AddFeature(feature); err != nil {
-				return true, err
+				return err
 			}
 		}
 	}
@@ -222,7 +226,7 @@ func initInstanceWithConfig(config *Config, server *Instance) (bool, error) {
 	for _, f := range essentialFeatures {
 		if server.GetFeature(f.Type) == nil {
 			if err := server.AddFeature(f.Instance); err != nil {
-				return true, err
+				return err
 			}
 		}
 	}
@@ -235,21 +239,21 @@ func initInstanceWithConfig(config *Config, server *Instance) (bool, error) {
 		}(),
 	)
 
-	server.resolveLock.Lock()
+	// server.resolveLock.Lock()
 	if server.pendingResolutions != nil {
-		server.resolveLock.Unlock()
-		return true, errors.New("not all dependencies are resolved.")
+		// server.resolveLock.Unlock()
+		return errors.New("not all dependencies are resolved.")
 	}
-	server.resolveLock.Unlock()
+	// server.resolveLock.Unlock()
 
 	if err := addInboundHandlers(server, config.Inbound); err != nil {
-		return true, err
+		return err
 	}
 
 	if err := addOutboundHandlers(server, config.Outbound); err != nil {
-		return true, err
+		return err
 	}
-	return false, nil
+	return nil
 }
 
 // Type implements common.HasType.
@@ -287,7 +291,7 @@ func (s *Instance) RequireFeatures(callback interface{}, optional bool) error {
 
 	var featureTypes []reflect.Type
 	for i := 0; i < callbackType.NumIn(); i++ {
-		featureTypes = append(featureTypes, reflect.PtrTo(callbackType.In(i)))
+		featureTypes = append(featureTypes, reflect.PointerTo(callbackType.In(i)))
 	}
 
 	r := resolution{
@@ -378,6 +382,13 @@ func (s *Instance) AddFeature(feature features.Feature) error {
 // GetFeature returns a feature of the given type, or nil if such feature is not registered.
 func (s *Instance) GetFeature(featureType interface{}) features.Feature {
 	return getFeature(s.features, reflect.TypeOf(featureType))
+}
+
+// only for debug
+func (s *Instance) PrintFeature() {
+	for _, f := range s.features {
+		fmt.Printf("[note] Feature %s\n", reflect.TypeOf(f.Type()).Elem().PkgPath()+"."+reflect.TypeOf(f.Type()).Elem().Name())
+	}
 }
 
 // Start starts the Xray instance, including all registered features. When Start returns error, the state of the instance is unknown.

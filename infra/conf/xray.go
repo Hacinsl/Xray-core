@@ -30,7 +30,7 @@ var (
 		"vless":         func() interface{} { return new(VLessInboundConfig) },
 		"vmess":         func() interface{} { return new(VMessInboundConfig) },
 		"trojan":        func() interface{} { return new(TrojanServerConfig) },
-		"wireguard":     func() interface{} { return &WireGuardConfig{IsClient: false} },
+		"wireguard":     func() interface{} { return new(WireGuardInboundConfig) },
 		"hysteria":      func() interface{} { return new(HysteriaServerConfig) },
 		"tun":           func() interface{} { return new(TunConfig) },
 	}, "protocol", "settings")
@@ -49,7 +49,7 @@ var (
 		"trojan":      func() interface{} { return new(TrojanClientConfig) },
 		"hysteria":    func() interface{} { return new(HysteriaClientConfig) },
 		"dns":         func() interface{} { return new(DNSOutboundConfig) },
-		"wireguard":   func() interface{} { return &WireGuardConfig{IsClient: true} },
+		"wireguard":   func() interface{} { return new(WireGuardOutboundConfig) },
 	}, "protocol", "settings")
 )
 
@@ -163,6 +163,7 @@ func (c *InboundDetourConfig) Build() (*core.InboundHandlerConfig, error) {
 			if c.PortList != nil {
 				// Listen on Unix Domain Socket, PortList should be nil
 				receiverSettings.PortList = nil
+				errors.LogDefaultWarning(`Listen on Unix Domain Socket, but "port" is specified. Ignored.`)
 			}
 		} else {
 			return nil, errors.New("unable to listen on domain address: ", c.ListenOn.Domain())
@@ -177,7 +178,7 @@ func (c *InboundDetourConfig) Build() (*core.InboundHandlerConfig, error) {
 		receiverSettings.StreamSettings = ss
 		if strings.Contains(ss.SecurityType, "reality") && (receiverSettings.PortList == nil ||
 			len(receiverSettings.PortList.Ports()) != 1 || receiverSettings.PortList.Ports()[0] != 443) {
-			errors.LogWarning(context.Background(), `REALITY: Listening on non-443 ports will increase the likelihood of your server's IP being blocked by the GFW`)
+			errors.LogDefaultWarning(`REALITY: Listening on non-443 ports will increase the likelihood of your server's IP being blocked by the GFW`)
 		}
 	}
 	if c.SniffingConfig != nil {
@@ -187,7 +188,6 @@ func (c *InboundDetourConfig) Build() (*core.InboundHandlerConfig, error) {
 		}
 		receiverSettings.SniffingSettings = s
 	}
-
 	settings := []byte("{}")
 	if c.Settings != nil {
 		settings = ([]byte)(*c.Settings)
@@ -493,11 +493,11 @@ func (c *Config) Override(o *Config, fn string) {
 		for i := range o.InboundConfigs {
 			if idx := c.findInboundTag(o.InboundConfigs[i].Tag); idx > -1 {
 				c.InboundConfigs[idx] = o.InboundConfigs[i]
-				errors.LogInfo(context.Background(), "[", fn, "] updated inbound with tag: ", o.InboundConfigs[i].Tag)
+				errors.LogDefaultInfo("[", fn, "] updated inbound with tag: ", o.InboundConfigs[i].Tag)
 
 			} else {
 				c.InboundConfigs = append(c.InboundConfigs, o.InboundConfigs[i])
-				errors.LogInfo(context.Background(), "[", fn, "] appended inbound with tag: ", o.InboundConfigs[i].Tag)
+				errors.LogDefaultInfo("[", fn, "] appended inbound with tag: ", o.InboundConfigs[i].Tag)
 			}
 		}
 	}
@@ -508,14 +508,14 @@ func (c *Config) Override(o *Config, fn string) {
 		for i := range o.OutboundConfigs {
 			if idx := c.findOutboundTag(o.OutboundConfigs[i].Tag); idx > -1 {
 				c.OutboundConfigs[idx] = o.OutboundConfigs[i]
-				errors.LogInfo(context.Background(), "[", fn, "] updated outbound with tag: ", o.OutboundConfigs[i].Tag)
+				errors.LogDefaultInfo("[", fn, "] updated outbound with tag: ", o.OutboundConfigs[i].Tag)
 			} else {
 				if strings.Contains(strings.ToLower(fn), "tail") {
 					c.OutboundConfigs = append(c.OutboundConfigs, o.OutboundConfigs[i])
-					errors.LogInfo(context.Background(), "[", fn, "] appended outbound with tag: ", o.OutboundConfigs[i].Tag)
+					errors.LogDefaultInfo("[", fn, "] appended outbound with tag: ", o.OutboundConfigs[i].Tag)
 				} else {
 					outboundPrepends = append(outboundPrepends, o.OutboundConfigs[i])
-					errors.LogInfo(context.Background(), "[", fn, "] prepend outbound with tag: ", o.OutboundConfigs[i].Tag)
+					errors.LogDefaultInfo("[", fn, "] prepend outbound with tag: ", o.OutboundConfigs[i].Tag)
 				}
 			}
 		}
@@ -567,12 +567,14 @@ func (c *Config) Build() (*core.Config, error) {
 		config.App = append(config.App, serial.ToTypedMessage(statsConf))
 	}
 
+	// This Build() hasn't an error return.
 	var logConfMsg *serial.TypedMessage
 	if c.LogConfig != nil {
 		logConfMsg = serial.ToTypedMessage(c.LogConfig.Build())
 	} else {
 		logConfMsg = serial.ToTypedMessage(DefaultLogConfig())
 	}
+
 	// let logger module be the first App to start,
 	// so that other modules could print log during initiating
 	config.App = append([]*serial.TypedMessage{logConfMsg}, config.App...)
@@ -603,11 +605,11 @@ func (c *Config) Build() (*core.Config, error) {
 
 	if c.Reverse != nil {
 		return nil, errors.PrintRemovedFeatureError(`"legacy reverse"`, `"VLESS Reverse Proxy"`)
-		r, err := c.Reverse.Build()
-		if err != nil {
-			return nil, errors.New("failed to build reverse configuration").Base(err)
-		}
-		config.App = append(config.App, serial.ToTypedMessage(r))
+		// r, err := c.Reverse.Build()
+		// if err != nil {
+		// 	return nil, errors.New("failed to build reverse configuration").Base(err)
+		// }
+		// config.App = append(config.App, serial.ToTypedMessage(r))
 	}
 
 	if c.FakeDNS != nil {
@@ -650,17 +652,11 @@ func (c *Config) Build() (*core.Config, error) {
 		config.App = append(config.App, serial.ToTypedMessage(r))
 	}
 
-	var inbounds []InboundDetourConfig
-
-	if len(c.InboundConfigs) > 0 {
-		inbounds = append(inbounds, c.InboundConfigs...)
-	}
-
 	if len(c.Transport) > 0 {
 		return nil, errors.PrintRemovedFeatureError("Global transport config", "streamSettings in inbounds and outbounds")
 	}
 
-	for _, rawInboundConfig := range inbounds {
+	for _, rawInboundConfig := range c.InboundConfigs {
 		ic, err := rawInboundConfig.Build()
 		if err != nil {
 			return nil, errors.New("failed to build inbound config with tag ", rawInboundConfig.Tag).Base(err)
@@ -668,13 +664,7 @@ func (c *Config) Build() (*core.Config, error) {
 		config.Inbound = append(config.Inbound, ic)
 	}
 
-	var outbounds []OutboundDetourConfig
-
-	if len(c.OutboundConfigs) > 0 {
-		outbounds = append(outbounds, c.OutboundConfigs...)
-	}
-
-	for _, rawOutboundConfig := range outbounds {
+	for _, rawOutboundConfig := range c.OutboundConfigs {
 		oc, err := rawOutboundConfig.Build()
 		if err != nil {
 			return nil, errors.New("failed to build outbound config with tag ", rawOutboundConfig.Tag).Base(err)

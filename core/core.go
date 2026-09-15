@@ -65,6 +65,7 @@ func Version() string {
 
 // VersionStatement returns a list of strings representing the full version info.
 func VersionStatement() []string {
+	// fmt.Printf("[note] VersionFields: %s %s %s %s %s %s %s\n", Version(), codename, build, runtime.Version(), runtime.GOOS, runtime.GOARCH, intro)
 	return []string{
 		serial.Concat("Xray ", Version(), " (", codename, ") ", build, " (", runtime.Version(), " ", runtime.GOOS, "/", runtime.GOARCH, ")"),
 		intro,

@@ -66,9 +66,9 @@ import (
 	_ "github.com/xtls/xray-core/transport/internet/headers/noop"
 
 	// JSON & TOML & YAML
-	_ "github.com/xtls/xray-core/main/json"
-	_ "github.com/xtls/xray-core/main/toml"
-	_ "github.com/xtls/xray-core/main/yaml"
+	// _ "github.com/xtls/xray-core/main/json"
+	// _ "github.com/xtls/xray-core/main/toml"
+	// _ "github.com/xtls/xray-core/main/yaml"
 
 	// Load config from file or http(s)
 	_ "github.com/xtls/xray-core/main/confloader/external"

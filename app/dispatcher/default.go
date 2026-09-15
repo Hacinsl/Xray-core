@@ -313,6 +313,9 @@ func (d *DefaultDispatcher) Dispatch(ctx context.Context, destination net.Destin
 				} else {
 					ob.Target = destination
 				}
+				if accessMessage := log.AccessMessageFromContext(ctx); accessMessage != nil {
+					accessMessage.To = destination
+				}
 			}
 			d.routedDispatch(ctx, outbound, destination)
 		}()
@@ -367,6 +370,9 @@ func (d *DefaultDispatcher) DispatchLink(ctx context.Context, destination net.De
 				ob.RouteTarget = destination
 			} else {
 				ob.Target = destination
+			}
+			if accessMessage := log.AccessMessageFromContext(ctx); accessMessage != nil {
+				accessMessage.To = destination
 			}
 		}
 		d.routedDispatch(ctx, outbound, destination)

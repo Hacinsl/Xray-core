@@ -1,14 +1,16 @@
 package scenarios
 
 import (
+	stdnet "net"
 	"testing"
-	//"time"
+	"time"
 
 	"github.com/xtls/xray-core/app/log"
 	"github.com/xtls/xray-core/app/proxyman"
 	"github.com/xtls/xray-core/common"
 	clog "github.com/xtls/xray-core/common/log"
 	"github.com/xtls/xray-core/common/net"
+	protocol "github.com/xtls/xray-core/common/protocol"
 	"github.com/xtls/xray-core/common/serial"
 	core "github.com/xtls/xray-core/core"
 	"github.com/xtls/xray-core/infra/conf"
@@ -17,15 +19,41 @@ import (
 	"github.com/xtls/xray-core/proxy/wireguard"
 	"github.com/xtls/xray-core/testing/servers/tcp"
 	"github.com/xtls/xray-core/testing/servers/udp"
-	//"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/errgroup"
 )
+
+// pickNonLoopbackIPv4 返回主机上第一个非回环、非链路本地的可绑定 IPv4 地址。
+// WireGuard 出于防路由环路的保护，不封装回环（127.0.0.0/8）流量，
+// 因此 WireGuard 端到端测试的目标地址必须是非回环地址。
+// link-local（169.254.0.0/16）无法用于绑定服务，也需要排除。
+func pickNonLoopbackIPv4() net.Address {
+	ifaces, err := stdnet.InterfaceAddrs()
+	if err != nil {
+		return net.LocalHostIP
+	}
+	for _, a := range ifaces {
+		ipNet, ok := a.(*stdnet.IPNet)
+		if !ok {
+			continue
+		}
+		ip4 := ipNet.IP.To4()
+		if ip4 == nil || ip4.IsLoopback() || ip4.IsLinkLocalUnicast() {
+			continue
+		}
+		return net.IPAddress(ip4)
+	}
+	return net.LocalHostIP
+}
 
 func TestWireguard(t *testing.T) {
 	tcpServer := tcp.Server{
 		MsgProcessor: xor,
+		Listen:       pickNonLoopbackIPv4(),
 	}
 	dest, err := tcpServer.Start()
-	common.Must(err)
+	if err != nil {
+		t.Fatalf("tcp.Server.Start failed: %v", err)
+	}
 	defer tcpServer.Close()
 
 	serverPrivate, _ := conf.ParseWireGuardKey("EGs4lTSJPmgELx6YiJAmPR2meWi6bY+e9rTdCipSj10=")
@@ -47,15 +75,19 @@ func TestWireguard(t *testing.T) {
 					PortList: &net.PortList{Range: []*net.PortRange{net.SinglePortRange(serverPort)}},
 					Listen:   net.NewIPOrDomain(net.LocalHostIP),
 				}),
-				ProxySettings: serial.ToTypedMessage(&wireguard.DeviceConfig{
-					IsClient:    false,
-					NoKernelTun: false,
-					Endpoint:    []string{"10.0.0.1"},
-					Mtu:         1420,
-					SecretKey:   serverPrivate,
-					Peers: []*wireguard.PeerConfig{{
-						PublicKey:  serverPublic,
-						AllowedIps: []string{"0.0.0.0/0", "::0/0"},
+				ProxySettings: serial.ToTypedMessage(&wireguard.InboundConfig{
+					// IsClient:    false,
+					// NoKernelTun: false,
+					Address:   []string{"10.0.0.1"},
+					Mtu:       1420,
+					SecretKey: serverPrivate,
+					Users: []*protocol.User{{
+						Email: "",
+						Level: 0,
+						Account: serial.ToTypedMessage(&wireguard.PeerConfig{
+							PublicKey:  serverPublic,
+							AllowedIps: []string{"0.0.0.0/0", "::0/0"},
+						}),
 					}},
 				}),
 			},
@@ -92,10 +124,10 @@ func TestWireguard(t *testing.T) {
 		},
 		Outbound: []*core.OutboundHandlerConfig{
 			{
-				ProxySettings: serial.ToTypedMessage(&wireguard.DeviceConfig{
-					IsClient:    true,
-					NoKernelTun: false,
-					Endpoint:    []string{"10.0.0.2"},
+				ProxySettings: serial.ToTypedMessage(&wireguard.OutboundConfig{
+					// IsClient:    true,
+					NoKernelTun: true,
+					Address:     []string{"10.0.0.2"},
 					Mtu:         1420,
 					SecretKey:   clientPrivate,
 					Peers: []*wireguard.PeerConfig{{
@@ -114,11 +146,11 @@ func TestWireguard(t *testing.T) {
 
 	// FIXME: for some reason wg server does not receive
 
-	// var errg errgroup.Group
-	// for i := 0; i < 1; i++ {
-	// 	errg.Go(testTCPConn(clientPort, 1024, time.Second*2))
-	// }
-	// if err := errg.Wait(); err != nil {
-	// 	t.Error(err)
-	// }
+	var errg errgroup.Group
+	for i := 0; i < 1; i++ {
+		errg.Go(testTCPConn(clientPort, 1024, time.Second*2))
+	}
+	if err := errg.Wait(); err != nil {
+		t.Error(err)
+	}
 }

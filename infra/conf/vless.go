@@ -166,49 +166,48 @@ func (c *VLessInboundConfig) Build() (proto.Message, error) {
 		} else {
 			_ = json.Unmarshal(fb.Dest, &s)
 		}
-		config.Fallbacks = append(config.Fallbacks, &inbound.Fallback{
+		nfb := &inbound.Fallback{
 			Name: fb.Name,
 			Alpn: fb.Alpn,
 			Path: fb.Path,
 			Type: fb.Type,
 			Dest: s,
 			Xver: fb.Xver,
-		})
-	}
-	for _, fb := range config.Fallbacks {
+		}
 		/*
-			if fb.Alpn == "h2" && fb.Path != "" {
+			if nfb.Alpn == "h2" && nfb.Path != "" {
 				return nil, errors.New(`VLESS fallbacks: "alpn":"h2" doesn't support "path"`)
 			}
 		*/
-		if fb.Path != "" && fb.Path[0] != '/' {
+		if nfb.Path != "" && nfb.Path[0] != '/' {
 			return nil, errors.New(`VLESS fallbacks: "path" must be empty or start with "/"`)
 		}
-		if fb.Type == "" && fb.Dest != "" {
-			if fb.Dest == "serve-ws-none" {
-				fb.Type = "serve"
-			} else if filepath.IsAbs(fb.Dest) || fb.Dest[0] == '@' {
-				fb.Type = "unix"
-				if strings.HasPrefix(fb.Dest, "@@") && (runtime.GOOS == "linux" || runtime.GOOS == "android") {
+		if nfb.Type == "" && nfb.Dest != "" {
+			if nfb.Dest == "serve-ws-none" {
+				nfb.Type = "serve"
+			} else if filepath.IsAbs(nfb.Dest) || nfb.Dest[0] == '@' {
+				nfb.Type = "unix"
+				if strings.HasPrefix(nfb.Dest, "@@") && (runtime.GOOS == "linux" || runtime.GOOS == "android") {
 					fullAddr := make([]byte, len(syscall.RawSockaddrUnix{}.Path)) // may need padding to work with haproxy
-					copy(fullAddr, fb.Dest[1:])
-					fb.Dest = string(fullAddr)
+					copy(fullAddr, nfb.Dest[1:])
+					nfb.Dest = string(fullAddr)
 				}
 			} else {
-				if _, err := strconv.Atoi(fb.Dest); err == nil {
-					fb.Dest = "localhost:" + fb.Dest
+				if _, err := strconv.Atoi(nfb.Dest); err == nil {
+					nfb.Dest = "localhost:" + nfb.Dest
 				}
-				if _, _, err := net.SplitHostPort(fb.Dest); err == nil {
-					fb.Type = "tcp"
+				if _, _, err := net.SplitHostPort(nfb.Dest); err == nil {
+					nfb.Type = "tcp"
 				}
 			}
 		}
-		if fb.Type == "" {
+		if nfb.Type == "" {
 			return nil, errors.New(`VLESS fallbacks: please fill in a valid value for every "dest"`)
 		}
-		if fb.Xver > 2 {
+		if nfb.Xver > 2 {
 			return nil, errors.New(`VLESS fallbacks: invalid PROXY protocol version, "xver" only accepts 0, 1, 2`)
 		}
+		config.Fallbacks = append(config.Fallbacks, nfb)
 	}
 
 	return config, nil

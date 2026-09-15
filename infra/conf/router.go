@@ -25,6 +25,30 @@ type BalancingRule struct {
 	FallbackTag string         `json:"fallbackTag"`
 }
 
+type RawFieldRule struct {
+	RuleTag     string             `json:"ruleTag"`
+	OutboundTag string             `json:"outboundTag"`
+	BalancerTag string             `json:"balancerTag"`
+	Domain      *StringList        `json:"domain"`
+	Domains     *StringList        `json:"domains"`
+	IP          *StringList        `json:"ip"`
+	Port        *PortList          `json:"port"`
+	Network     *NetworkList       `json:"network"`
+	SourceIP    *StringList        `json:"sourceIP"`
+	Source      *StringList        `json:"source"`
+	SourcePort  *PortList          `json:"sourcePort"`
+	User        *StringList        `json:"user"`
+	VlessRoute  *PortList          `json:"vlessRoute"`
+	InboundTag  *StringList        `json:"inboundTag"`
+	Protocols   *StringList        `json:"protocol"`
+	Attributes  map[string]string  `json:"attrs"`
+	LocalIP     *StringList        `json:"localIP"`
+	LocalPort   *PortList          `json:"localPort"`
+	Process     *StringList        `json:"process"`
+	LocalOS     *StringList        `json:"localOS"`
+	Webhook     *WebhookRuleConfig `json:"webhook"`
+}
+
 // Build builds the balancing rule
 func (r *BalancingRule) Build() (*router.BalancingRule, error) {
 	if r.Tag == "" {
@@ -69,9 +93,9 @@ func (r *BalancingRule) Build() (*router.BalancingRule, error) {
 }
 
 type RouterConfig struct {
-	RuleList       []json.RawMessage `json:"rules"`
-	DomainStrategy *string           `json:"domainStrategy"`
-	Balancers      []*BalancingRule  `json:"balancers"`
+	RuleList       []*RawFieldRule  `json:"rules"`
+	DomainStrategy *string          `json:"domainStrategy"`
+	Balancers      []*BalancingRule `json:"balancers"`
 }
 
 func (c *RouterConfig) getDomainStrategy() router.Config_DomainStrategy {
@@ -94,12 +118,8 @@ func (c *RouterConfig) Build() (*router.Config, error) {
 	config := new(router.Config)
 	config.DomainStrategy = c.getDomainStrategy()
 
-	var rawRuleList []json.RawMessage
-	if c != nil {
-		rawRuleList = c.RuleList
-	}
-	for _, rawRule := range rawRuleList {
-		rule, err := parseRule(rawRule)
+	for _, rawRule := range c.RuleList {
+		rule, err := parseFieldRule(rawRule)
 		if err != nil {
 			return nil, err
 		}
@@ -117,49 +137,46 @@ func (c *RouterConfig) Build() (*router.Config, error) {
 	return config, nil
 }
 
-type RouterRule struct {
-	RuleTag     string `json:"ruleTag"`
-	OutboundTag string `json:"outboundTag"`
-	BalancerTag string `json:"balancerTag"`
-}
-
 type WebhookRuleConfig struct {
 	URL           string            `json:"url"`
 	Deduplication uint32            `json:"deduplication"`
 	Headers       map[string]string `json:"headers"`
 }
 
-func parseFieldRule(msg json.RawMessage) (*router.RoutingRule, error) {
-	type RawFieldRule struct {
-		RouterRule
-		Domain     *StringList        `json:"domain"`
-		Domains    *StringList        `json:"domains"`
-		IP         *StringList        `json:"ip"`
-		Port       *PortList          `json:"port"`
-		Network    *NetworkList       `json:"network"`
-		SourceIP   *StringList        `json:"sourceIP"`
-		Source     *StringList        `json:"source"`
-		SourcePort *PortList          `json:"sourcePort"`
-		User       *StringList        `json:"user"`
-		VlessRoute *PortList          `json:"vlessRoute"`
-		InboundTag *StringList        `json:"inboundTag"`
-		Protocols  *StringList        `json:"protocol"`
-		Attributes map[string]string  `json:"attrs"`
-		LocalIP    *StringList        `json:"localIP"`
-		LocalPort  *PortList          `json:"localPort"`
-		Process    *StringList        `json:"process"`
-		LocalOS    *StringList        `json:"localOS"`
-		Webhook    *WebhookRuleConfig `json:"webhook"`
-	}
-	rawFieldRule := new(RawFieldRule)
-	err := json.Unmarshal(msg, rawFieldRule)
-	if err != nil {
-		return nil, err
-	}
+func parseFieldRule(rawFieldRule *RawFieldRule) (*router.RoutingRule, error) {
+	// type RawFieldRule struct {
+	// 	RuleTag     string             `json:"ruleTag"`
+	// 	OutboundTag string             `json:"outboundTag"`
+	// 	BalancerTag string             `json:"balancerTag"`
+	// 	Domain      *StringList        `json:"domain"`
+	// 	Domains     *StringList        `json:"domains"`
+	// 	IP          *StringList        `json:"ip"`
+	// 	Port        *PortList          `json:"port"`
+	// 	Network     *NetworkList       `json:"network"`
+	// 	SourceIP    *StringList        `json:"sourceIP"`
+	// 	Source      *StringList        `json:"source"`
+	// 	SourcePort  *PortList          `json:"sourcePort"`
+	// 	User        *StringList        `json:"user"`
+	// 	VlessRoute  *PortList          `json:"vlessRoute"`
+	// 	InboundTag  *StringList        `json:"inboundTag"`
+	// 	Protocols   *StringList        `json:"protocol"`
+	// 	Attributes  map[string]string  `json:"attrs"`
+	// 	LocalIP     *StringList        `json:"localIP"`
+	// 	LocalPort   *PortList          `json:"localPort"`
+	// 	Process     *StringList        `json:"process"`
+	// 	Webhook     *WebhookRuleConfig `json:"webhook"`
+	// }
+	// rawFieldRule := new(RawFieldRule)
+	// err := json.Unmarshal(msg, rawFieldRule)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	rule := new(router.RoutingRule)
 	rule.RuleTag = rawFieldRule.RuleTag
 	switch {
+	case len(rawFieldRule.OutboundTag) > 0 && len(rawFieldRule.BalancerTag) > 0:
+		return nil, errors.New("both outboundTag and balancerTag are specified in routing rule")
 	case len(rawFieldRule.OutboundTag) > 0:
 		rule.TargetTag = &router.RoutingRule_Tag{
 			Tag: rawFieldRule.OutboundTag,
@@ -233,9 +250,7 @@ func parseFieldRule(msg json.RawMessage) (*router.RoutingRule, error) {
 	}
 
 	if rawFieldRule.User != nil {
-		for _, s := range *rawFieldRule.User {
-			rule.UserEmail = append(rule.UserEmail, s)
-		}
+		rule.UserEmail = *rawFieldRule.User
 	}
 
 	if rawFieldRule.VlessRoute != nil {
@@ -243,15 +258,11 @@ func parseFieldRule(msg json.RawMessage) (*router.RoutingRule, error) {
 	}
 
 	if rawFieldRule.InboundTag != nil {
-		for _, s := range *rawFieldRule.InboundTag {
-			rule.InboundTag = append(rule.InboundTag, s)
-		}
+		rule.InboundTag = *rawFieldRule.InboundTag
 	}
 
 	if rawFieldRule.Protocols != nil {
-		for _, s := range *rawFieldRule.Protocols {
-			rule.Protocol = append(rule.Protocol, s)
-		}
+		rule.Protocol = *rawFieldRule.Protocols
 	}
 
 	if len(rawFieldRule.Attributes) > 0 {
@@ -277,16 +288,10 @@ func parseFieldRule(msg json.RawMessage) (*router.RoutingRule, error) {
 	return rule, nil
 }
 
-func parseRule(msg json.RawMessage) (*router.RoutingRule, error) {
-	rawRule := new(RouterRule)
-	err := json.Unmarshal(msg, rawRule)
-	if err != nil {
-		return nil, errors.New("invalid router rule").Base(err)
-	}
-
-	fieldrule, err := parseFieldRule(msg)
-	if err != nil {
-		return nil, errors.New("invalid field rule").Base(err)
-	}
-	return fieldrule, nil
-}
+// func parseRule(msg json.RawMessage) (*router.RoutingRule, error) {
+// 	fieldrule, err := parseFieldRule(msg)
+// 	if err != nil {
+// 		return nil, errors.New("invalid field rule").Base(err)
+// 	}
+// 	return fieldrule, nil
+// }

@@ -1,7 +1,6 @@
 package conf
 
 import (
-	"context"
 	"encoding/json"
 	"strings"
 
@@ -128,7 +127,7 @@ func (FakeDNSPostProcessingStage) Process(config *Config) error {
 				}
 			}
 		}
-		errors.LogWarning(context.Background(), "Defined FakeDNS but haven't enabled FakeDNS destOverride at any inbound.")
+		errors.LogDefaultWarning("Defined FakeDNS but haven't enabled FakeDNS destOverride at any inbound.")
 	}
 
 	return nil

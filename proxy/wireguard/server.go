@@ -31,7 +31,7 @@ import (
 )
 
 type Server struct {
-	conf          *DeviceConfig
+	conf          *InboundConfig
 	ctx           context.Context
 	policyManager policy.Manager
 	dispatcher    routing.Dispatcher
@@ -52,7 +52,7 @@ type Server struct {
 	users *sync.Map
 }
 
-func NewServer(ctx context.Context, conf *DeviceConfig) (*Server, error) {
+func NewServer(ctx context.Context, conf *InboundConfig) (*Server, error) {
 	v := core.MustFromContext(ctx)
 	p := v.GetFeature(policy.ManagerType()).(policy.Manager)
 	d := v.GetFeature(routing.DispatcherType()).(routing.Dispatcher)
@@ -60,6 +60,9 @@ func NewServer(ctx context.Context, conf *DeviceConfig) (*Server, error) {
 	inbound := session.InboundFromContext(ctx)
 	content := session.ContentFromContext(ctx)
 	streamSettings := session.StreamSettingsFromContext(ctx).(*internet.MemoryStreamConfig)
+	if streamSettings == nil {
+		streamSettings = &internet.MemoryStreamConfig{}
+	}
 	tag := inbound.Tag
 	var uplinkCounter stats.Counter
 	var downlinkCounter stats.Counter
@@ -80,8 +83,8 @@ func NewServer(ctx context.Context, conf *DeviceConfig) (*Server, error) {
 		}
 	}
 
-	localAddresses := make([]netip.Addr, 0, len(conf.Endpoint))
-	for _, localaddress := range conf.Endpoint {
+	localAddresses := make([]netip.Addr, 0, len(conf.Address))
+	for _, localaddress := range conf.Address {
 		addr, err := netip.ParseAddr(localaddress)
 		if err == nil {
 			localAddresses = append(localAddresses, addr)

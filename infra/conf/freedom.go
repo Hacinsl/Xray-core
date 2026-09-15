@@ -1,7 +1,6 @@
 package conf
 
 import (
-	"context"
 	"encoding/base64"
 	"encoding/hex"
 	"net"
@@ -55,7 +54,7 @@ type FreedomFinalRuleConfig struct {
 func (c *FreedomConfig) Build() (proto.Message, error) {
 	if c.IPsBlocked != nil {
 		// todo: remove legacy
-		errors.LogWarning(context.Background(), `The feature "ipsBlocked" has been removed and migrated to "finalRules". Please update your config(s) according to release note and documentation.`)
+		errors.LogDefaultWarning(`The feature "ipsBlocked" has been removed and migrated to "finalRules". Please update your config(s) according to release note and documentation.`)
 	}
 
 	config := new(freedom.Config)

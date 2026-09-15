@@ -37,7 +37,7 @@ type entry struct {
 }
 
 type Handler struct {
-	conf          *DeviceConfig
+	conf          *OutboundConfig
 	policyManager policy.Manager
 	dns           dns.Client
 
@@ -56,12 +56,15 @@ type Handler struct {
 	cacheMu sync.Mutex
 }
 
-func NewClient(ctx context.Context, conf *DeviceConfig) (*Handler, error) {
+func NewClient(ctx context.Context, conf *OutboundConfig) (*Handler, error) {
 	v := core.MustFromContext(ctx)
 	p := v.GetFeature(policy.ManagerType()).(policy.Manager)
 	d := v.GetFeature(dns.ClientType()).(dns.Client)
 
 	streamSettings := session.StreamSettingsFromContext(ctx).(*internet.MemoryStreamConfig)
+	if streamSettings == nil {
+		streamSettings = &internet.MemoryStreamConfig{}
+	}
 	tag := session.FullHandlerFromContext(ctx).Tag()
 	var uplinkCounter stats.Counter
 	var downlinkCounter stats.Counter
@@ -94,8 +97,8 @@ func NewClient(ctx context.Context, conf *DeviceConfig) (*Handler, error) {
 		}
 	}
 
-	localAddresses := make([]netip.Addr, 0, len(conf.Endpoint))
-	for _, localaddress := range conf.Endpoint {
+	localAddresses := make([]netip.Addr, 0, len(conf.Address))
+	for _, localaddress := range conf.Address {
 		addr, err := netip.ParseAddr(localaddress)
 		if err == nil {
 			localAddresses = append(localAddresses, addr)
@@ -385,7 +388,7 @@ func (h *Handler) resolveRemote(host string) (net.IP, error) {
 	})
 }
 
-func (h *Handler) resolveDomain(host string, strategy DeviceConfig_DomainStrategy, lookupIP func(host string) ([]net.IP, uint32, error)) (net.IP, error) {
+func (h *Handler) resolveDomain(host string, strategy DomainStrategy, lookupIP func(host string) ([]net.IP, uint32, error)) (net.IP, error) {
 	if ip := net.ParseIP(host); ip != nil {
 		return ip, nil
 	}
@@ -415,19 +418,19 @@ func (h *Handler) resolveDomain(host string, strategy DeviceConfig_DomainStrateg
 	}
 	var got []net.IP
 	switch strategy {
-	case DeviceConfig_FORCE_IP:
+	case DomainStrategy_FORCE_IP:
 		got = ips
 		return ips[dice.Roll(len(ips))], nil
-	case DeviceConfig_FORCE_IP4:
+	case DomainStrategy_FORCE_IP4:
 		got = got4
-	case DeviceConfig_FORCE_IP6:
+	case DomainStrategy_FORCE_IP6:
 		got = got6
-	case DeviceConfig_FORCE_IP46:
+	case DomainStrategy_FORCE_IP46:
 		got = got4
 		if len(got) == 0 {
 			got = got6
 		}
-	case DeviceConfig_FORCE_IP64:
+	case DomainStrategy_FORCE_IP64:
 		got = got6
 		if len(got) == 0 {
 			got = got4

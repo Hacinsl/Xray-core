@@ -1,18 +1,26 @@
 package conf_test
 
 import (
+	"encoding/json"
 	"path/filepath"
 	"testing"
 
 	"github.com/xtls/xray-core/app/geodata"
 	. "github.com/xtls/xray-core/infra/conf"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestGeodataConfig(t *testing.T) {
 	t.Setenv("xray.location.asset", filepath.Join("..", "..", "resources"))
 
-	creator := func() Buildable {
-		return new(GeodataConfig)
+	createParser := func() func(string) (proto.Message, error) {
+		return func(s string) (proto.Message, error) {
+			config := new(GeodataConfig)
+			if err := json.Unmarshal([]byte(s), config); err != nil {
+				return nil, err
+			}
+			return config.Build()
+		}
 	}
 
 	runMultiTestCase(t, []TestCase{
@@ -25,7 +33,7 @@ func TestGeodataConfig(t *testing.T) {
 					{"url": "https://example.com/geosite.dat", "file": "geosite.dat"}
 				]
 			}`,
-			Parser: loadJSON(creator),
+			Parser: createParser(),
 			Output: &geodata.Config{
 				Cron:     "0 4 * * *",
 				Outbound: "proxy",

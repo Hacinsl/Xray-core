@@ -12,13 +12,15 @@ func main() {
 	os.Args = getArgsV4Compatible()
 
 	base.RootCommand.Long = "Xray is a platform for building proxies."
-	base.RootCommand.Commands = append(
+	/*base.RootCommand.Commands = append(
 		[]*base.Command{
 			cmdRun,
 			cmdVersion,
 		},
 		base.RootCommand.Commands...,
-	)
+	)*/
+	base.RegisterCommand(cmdVersion)
+	base.RegisterCommand(cmdRun)
 	base.Execute()
 }
 

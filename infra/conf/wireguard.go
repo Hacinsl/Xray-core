@@ -56,21 +56,39 @@ func (c *WireGuardPeerConfig) Build() (*wireguard.PeerConfig, error) {
 	return config, nil
 }
 
-type WireGuardConfig struct {
-	IsClient bool `json:""`
+type WireGuardInboundConfig struct {
+	SecretKey string                 `json:"secretKey"`
+	Peers     []*WireGuardPeerConfig `json:"peers"`
+	MTU       int32                  `json:"mtu"`
+	Address   []string               `json:"address"`
+}
 
-	NoKernelTun    bool                   `json:"noKernelTun"`
+type WireGuardOutboundConfig struct {
 	SecretKey      string                 `json:"secretKey"`
 	Address        []string               `json:"address"`
 	Peers          []*WireGuardPeerConfig `json:"peers"`
 	MTU            int32                  `json:"mtu"`
 	Reserved       []byte                 `json:"reserved"`
 	DomainStrategy string                 `json:"domainStrategy"`
+	NoKernelTun    bool                   `json:"noKernelTun"`
 	DNS            []string               `json:"remoteDNS"`
 }
 
-func (c *WireGuardConfig) Build() (proto.Message, error) {
-	config := new(wireguard.DeviceConfig)
+// type WireGuardConfig struct {
+// 	IsClient bool `json:""`
+
+// 	NoKernelTun    bool                   `json:"noKernelTun"`
+// 	SecretKey      string                 `json:"secretKey"`
+// 	Address        []string               `json:"address"`
+// 	Peers          []*WireGuardPeerConfig `json:"peers"`
+// 	MTU            int32                  `json:"mtu"`
+// 	Reserved       []byte                 `json:"reserved"`
+// 	DomainStrategy string                 `json:"domainStrategy"`
+// 	DNS            []string               `json:"remoteDNS"`
+// }
+
+func (c *WireGuardInboundConfig) Build() (proto.Message, error) {
+	config := new(wireguard.InboundConfig)
 
 	var err error
 	config.SecretKey, err = ParseWireGuardKey(c.SecretKey)
@@ -79,39 +97,56 @@ func (c *WireGuardConfig) Build() (proto.Message, error) {
 	}
 
 	if c.Address == nil {
-		// bogon ips
-		config.Endpoint = []string{"10.0.0.1", "fd59:7153:2388:b5fd:0000:0000:0000:0001"}
+		config.Address = []string{"10.0.0.1", "fd59:7153:2388:b5fd:0000:0000:0000:0001"}
 	} else {
-		config.Endpoint = c.Address
+		config.Address = c.Address
 	}
 
-	if c.IsClient {
-		config.Peers = make([]*wireguard.PeerConfig, len(c.Peers))
-		for i, p := range c.Peers {
-			msg, err := p.Build()
-			if err != nil {
-				return nil, err
-			}
-			config.Peers[i] = msg
+	config.Users = make([]*protocol.User, len(c.Peers))
+	processUser := func(idx int) error {
+		p := c.Peers[idx]
+		m, err := p.Build()
+		if err != nil {
+			return err
 		}
+		config.Users[idx] = &protocol.User{
+			Email:   p.Email,
+			Level:   p.Level,
+			Account: serial.ToTypedMessage(m),
+		}
+		return nil
+	}
+	if err := task.ParallelForN(len(c.Peers), processUser); err != nil {
+		return nil, err
+	}
+
+	if c.MTU == 0 {
+		config.Mtu = 1420
 	} else {
-		config.Users = make([]*protocol.User, len(c.Peers))
-		processUser := func(idx int) error {
-			p := c.Peers[idx]
-			m, err := p.Build()
-			if err != nil {
-				return err
-			}
-			config.Users[idx] = &protocol.User{
-				Email:   p.Email,
-				Level:   p.Level,
-				Account: serial.ToTypedMessage(m),
-			}
-			return nil
-		}
-		if err := task.ParallelForN(len(c.Peers), processUser); err != nil {
+		config.Mtu = c.MTU
+	}
+
+	return config, nil
+}
+
+func (c *WireGuardOutboundConfig) Build() (proto.Message, error) {
+	config := new(wireguard.OutboundConfig)
+
+	var err error
+	config.SecretKey, err = ParseWireGuardKey(c.SecretKey)
+	if err != nil {
+		return nil, errors.New("invalid WireGuard secret key: %w", err)
+	}
+
+	config.Address = c.Address
+
+	config.Peers = make([]*wireguard.PeerConfig, len(c.Peers))
+	for i, p := range c.Peers {
+		msg, err := p.Build()
+		if err != nil {
 			return nil, err
 		}
+		config.Peers[i] = msg
 	}
 
 	if c.MTU == 0 {
@@ -127,25 +162,102 @@ func (c *WireGuardConfig) Build() (proto.Message, error) {
 
 	switch strings.ToLower(c.DomainStrategy) {
 	case "forceip", "":
-		config.DomainStrategy = wireguard.DeviceConfig_FORCE_IP
+		config.DomainStrategy = wireguard.DomainStrategy_FORCE_IP
 	case "forceipv4":
-		config.DomainStrategy = wireguard.DeviceConfig_FORCE_IP4
+		config.DomainStrategy = wireguard.DomainStrategy_FORCE_IP4
 	case "forceipv6":
-		config.DomainStrategy = wireguard.DeviceConfig_FORCE_IP6
+		config.DomainStrategy = wireguard.DomainStrategy_FORCE_IP6
 	case "forceipv4v6":
-		config.DomainStrategy = wireguard.DeviceConfig_FORCE_IP46
+		config.DomainStrategy = wireguard.DomainStrategy_FORCE_IP46
 	case "forceipv6v4":
-		config.DomainStrategy = wireguard.DeviceConfig_FORCE_IP64
+		config.DomainStrategy = wireguard.DomainStrategy_FORCE_IP64
 	default:
 		return nil, errors.New("unsupported domain strategy: ", c.DomainStrategy)
 	}
 
-	config.IsClient = c.IsClient
 	config.NoKernelTun = c.NoKernelTun
 	config.DNS = c.DNS
 
 	return config, nil
 }
+
+// func (c *WireGuardConfig) Build() (proto.Message, error) {
+// 	config := new(wireguard.DeviceConfig)
+
+// 	var err error
+// 	config.SecretKey, err = ParseWireGuardKey(c.SecretKey)
+// 	if err != nil {
+// 		return nil, errors.New("invalid WireGuard secret key: %w", err)
+// 	}
+
+// 	if c.Address == nil {
+// 		// bogon ips
+// 		config.Endpoint = []string{"10.0.0.1", "fd59:7153:2388:b5fd:0000:0000:0000:0001"}
+// 	} else {
+// 		config.Endpoint = c.Address
+// 	}
+
+// 	if c.IsClient {
+// 		config.Peers = make([]*wireguard.PeerConfig, len(c.Peers))
+// 		for i, p := range c.Peers {
+// 			msg, err := p.Build()
+// 			if err != nil {
+// 				return nil, err
+// 			}
+// 			config.Peers[i] = msg
+// 		}
+// 	} else {
+// 		config.Users = make([]*protocol.User, len(c.Peers))
+// 		processUser := func(idx int) error {
+// 			p := c.Peers[idx]
+// 			m, err := p.Build()
+// 			if err != nil {
+// 				return err
+// 			}
+// 			config.Users[idx] = &protocol.User{
+// 				Email:   p.Email,
+// 				Level:   p.Level,
+// 				Account: serial.ToTypedMessage(m),
+// 			}
+// 			return nil
+// 		}
+// 		if err := task.ParallelForN(len(c.Peers), processUser); err != nil {
+// 			return nil, err
+// 		}
+// 	}
+
+// 	if c.MTU == 0 {
+// 		config.Mtu = 1420
+// 	} else {
+// 		config.Mtu = c.MTU
+// 	}
+
+// 	if len(c.Reserved) != 0 && len(c.Reserved) != 3 {
+// 		return nil, errors.New(`"reserved" should be empty or 3 bytes`)
+// 	}
+// 	config.Reserved = c.Reserved
+
+// 	switch strings.ToLower(c.DomainStrategy) {
+// 	case "forceip", "":
+// 		config.DomainStrategy = wireguard.DeviceConfig_FORCE_IP
+// 	case "forceipv4":
+// 		config.DomainStrategy = wireguard.DeviceConfig_FORCE_IP4
+// 	case "forceipv6":
+// 		config.DomainStrategy = wireguard.DeviceConfig_FORCE_IP6
+// 	case "forceipv4v6":
+// 		config.DomainStrategy = wireguard.DeviceConfig_FORCE_IP46
+// 	case "forceipv6v4":
+// 		config.DomainStrategy = wireguard.DeviceConfig_FORCE_IP64
+// 	default:
+// 		return nil, errors.New("unsupported domain strategy: ", c.DomainStrategy)
+// 	}
+
+// 	config.IsClient = c.IsClient
+// 	config.NoKernelTun = c.NoKernelTun
+// 	config.DNS = c.DNS
+
+// 	return config, nil
+// }
 
 func ParseWireGuardKey(str string) (string, error) {
 	var err error

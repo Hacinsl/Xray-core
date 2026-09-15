@@ -16,23 +16,49 @@ message PeerConfig {
   repeated string allowed_ips = 5;
 }
 
-message DeviceConfig {
-  enum DomainStrategy {
-    FORCE_IP = 0;
-    FORCE_IP4 = 1;
-    FORCE_IP6 = 2;
-    FORCE_IP46 = 3;
-    FORCE_IP64 = 4;
-  }
-  string secret_key = 1;
-  repeated string endpoint = 2;
-  repeated PeerConfig peers = 3;
-  repeated xray.common.protocol.User users = 5;
-  int32 mtu = 4;
+enum DomainStrategy {
+  FORCE_IP = 0;
+  FORCE_IP4 = 1;
+  FORCE_IP6 = 2;
+  FORCE_IP46 = 3;
+  FORCE_IP64 = 4;
+}
 
+// message DeviceConfig {
+//   enum DomainStrategy {
+//     FORCE_IP = 0;
+//     FORCE_IP4 = 1;
+//     FORCE_IP6 = 2;
+//     FORCE_IP46 = 3;
+//     FORCE_IP64 = 4;
+//   }
+//   string secret_key = 1;
+//   repeated string endpoint = 2;
+//   repeated PeerConfig peers = 3;
+//   repeated xray.common.protocol.User users = 5;
+//   int32 mtu = 4;
+
+//   bytes reserved = 6;
+//   DomainStrategy domain_strategy = 7;
+//   bool is_client = 8;
+//   bool no_kernel_tun = 9;
+//   repeated string DNS = 10;
+// }
+
+message OutboundConfig {
+  string secret_key = 1;
+  repeated string address = 2;
+  repeated PeerConfig peers = 3;
+  int32 mtu = 4;
   bytes reserved = 6;
   DomainStrategy domain_strategy = 7;
-  bool is_client = 8;
   bool no_kernel_tun = 9;
   repeated string DNS = 10;
+}
+
+message InboundConfig {
+  string secret_key = 1;
+  repeated string address = 2;
+  repeated xray.common.protocol.User users = 5;
+  int32 mtu = 4;
 }

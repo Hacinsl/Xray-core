@@ -1,7 +1,6 @@
 package serial
 
 import (
-	"context"
 	"io"
 
 	"github.com/xtls/xray-core/common/errors"
@@ -21,6 +20,7 @@ import (
 // JSON5/JSONC syntax.
 var UseStrictJSON = platform.NewEnvFlag(platform.UseStrictJSON).GetValue(func() string { return "" }) == "true"
 
+// Only for dumpConfig, return conf.Config in JSON
 func MergeConfigFromFiles(files []*core.ConfigSource) (string, error) {
 	c, err := mergeConfigs(files)
 	if err != nil {
@@ -36,10 +36,16 @@ func MergeConfigFromFiles(files []*core.ConfigSource) (string, error) {
 func mergeConfigs(files []*core.ConfigSource) (*conf.Config, error) {
 	cf := &conf.Config{}
 	for i, file := range files {
-		errors.LogInfo(context.Background(), "Reading config: ", file)
-		r, err := confloader.LoadConfig(file.Name)
-		if err != nil {
-			return nil, errors.New("failed to read config: ", file).Base(err)
+		errors.LogDefaultInfo("Reading config: ", file)
+		var r io.Reader
+		var err error
+		if file.Reader != nil {
+			r = file.Reader
+		} else {
+			r, err = confloader.LoadConfig(file.Name)
+			if err != nil {
+				return nil, errors.New("failed to read config: ", file).Base(err)
+			}
 		}
 		decoder := ReaderDecoderByFormat[file.Format]
 		if file.Format == "json" && UseStrictJSON {

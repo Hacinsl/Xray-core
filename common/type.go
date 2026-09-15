@@ -2,6 +2,7 @@ package common
 
 import (
 	"context"
+	// "fmt"
 	"reflect"
 
 	"github.com/xtls/xray-core/common/errors"
@@ -16,8 +17,9 @@ var typeCreatorRegistry = make(map[reflect.Type]ConfigCreator)
 func RegisterConfig(config interface{}, configCreator ConfigCreator) error {
 	configType := reflect.TypeOf(config)
 	if _, found := typeCreatorRegistry[configType]; found {
-		return errors.New(configType.Name() + " is already registered").AtError()
+		return errors.New(configType.String() + " is already registered").AtError()
 	}
+	// fmt.Printf("[note] Register ConfigCreator for %s\n", configType.Elem().PkgPath()+"."+configType.Elem().Name())
 	typeCreatorRegistry[configType] = configCreator
 	return nil
 }
@@ -29,5 +31,6 @@ func CreateObject(ctx context.Context, config interface{}) (interface{}, error) 
 	if !found {
 		return nil, errors.New(configType.String() + " is not registered").AtError()
 	}
+	// fmt.Printf("[note] Create object for %s\n", configType.Elem().PkgPath()+"."+configType.Elem().Name())
 	return creator(ctx, config)
 }

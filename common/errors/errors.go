@@ -170,6 +170,30 @@ func LogErrorInner(ctx context.Context, inner error, msg ...interface{}) {
 	doLog(ctx, inner, log.Severity_Error, msg...)
 }
 
+func LogDefaultInfo(msg ...interface{}) {
+	doDefaultLog(nil, log.Severity_Info, msg...)
+}
+
+func LogDefaultInfoInner(inner error, msg ...interface{}) {
+	doDefaultLog(inner, log.Severity_Info, msg...)
+}
+
+func LogDefaultWarning(msg ...interface{}) {
+	doDefaultLog(nil, log.Severity_Warning, msg...)
+}
+
+func LogDefaultWarningInner(inner error, msg ...interface{}) {
+	doDefaultLog(inner, log.Severity_Warning, msg...)
+}
+
+func LogDefaultError(msg ...interface{}) {
+	doDefaultLog(nil, log.Severity_Error, msg...)
+}
+
+func LogDefaultErrorInner(inner error, msg ...interface{}) {
+	doDefaultLog(inner, log.Severity_Error, msg...)
+}
+
 func doLog(ctx context.Context, inner error, severity log.Severity, msg ...interface{}) {
 	pc, _, _, _ := runtime.Caller(2)
 	details := runtime.FuncForPC(pc).Name()
@@ -193,6 +217,28 @@ func doLog(ctx context.Context, inner error, severity log.Severity, msg ...inter
 		}
 	}
 	log.Record(&log.GeneralMessage{
+		Severity: GetSeverity(err),
+		Content:  err,
+	})
+}
+
+func doDefaultLog(inner error, severity log.Severity, msg ...interface{}) {
+	pc, _, _, _ := runtime.Caller(2)
+	details := runtime.FuncForPC(pc).Name()
+	if len(details) >= trim {
+		details = details[trim:]
+	}
+	i := strings.Index(details, ".")
+	if i > 0 {
+		details = details[:i]
+	}
+	err := &Error{
+		message:  msg,
+		severity: severity,
+		caller:   details,
+		inner:    inner,
+	}
+	log.DefaultRecord(&log.GeneralMessage{
 		Severity: GetSeverity(err),
 		Content:  err,
 	})

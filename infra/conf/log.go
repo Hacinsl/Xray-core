@@ -24,13 +24,14 @@ type LogConfig struct {
 }
 
 func (v *LogConfig) Build() *log.Config {
-	if v == nil {
-		return nil
-	}
+	// if v == nil {
+	// 	return nil
+	// }
 	config := &log.Config{
 		ErrorLogType:  log.LogType_Console,
 		AccessLogType: log.LogType_Console,
 		EnableDnsLog:  v.DNSLog,
+		MaskAddress:   v.MaskAddress,
 	}
 
 	if v.AccessLog == "none" {
@@ -60,6 +61,6 @@ func (v *LogConfig) Build() *log.Config {
 	default:
 		config.ErrorLogLevel = clog.Severity_Warning
 	}
-	config.MaskAddress = v.MaskAddress
+	// config.MaskAddress = v.MaskAddress
 	return config
 }

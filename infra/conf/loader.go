@@ -11,14 +11,14 @@ type ConfigCreator func() interface{}
 
 type ConfigCreatorCache map[string]ConfigCreator
 
-func (v ConfigCreatorCache) RegisterCreator(id string, creator ConfigCreator) error {
-	if _, found := v[id]; found {
-		return errors.New(id, " already registered.").AtError()
-	}
+// func (v ConfigCreatorCache) RegisterCreator(id string, creator ConfigCreator) error {
+// 	if _, found := v[id]; found {
+// 		return errors.New(id, " already registered.").AtError()
+// 	}
 
-	v[id] = creator
-	return nil
-}
+// 	v[id] = creator
+// 	return nil
+// }
 
 func (v ConfigCreatorCache) CreateConfig(id string) (interface{}, error) {
 	creator, found := v[id]

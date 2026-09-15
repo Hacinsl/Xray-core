@@ -7,7 +7,6 @@ import (
 	"github.com/xtls/xray-core/app/geodata"
 	"github.com/xtls/xray-core/common/errors"
 	"github.com/xtls/xray-core/common/platform/filesystem"
-	"google.golang.org/protobuf/proto"
 )
 
 type GeodataAssetConfig struct {
@@ -45,7 +44,7 @@ type GeodataConfig struct {
 	Assets   []*GeodataAssetConfig `json:"assets"`
 }
 
-func (c *GeodataConfig) Build() (proto.Message, error) {
+func (c *GeodataConfig) Build() (*geodata.Config, error) {
 	config := &geodata.Config{}
 
 	if c.Cron != nil {

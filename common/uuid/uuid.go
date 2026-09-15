@@ -73,7 +73,7 @@ func ParseString(str string) (UUID, error) {
 			return uuid, errors.New("invalid UUID: ", str)
 		}
 		h := sha1.New()
-		h.Write(uuid[:])
+		// h.Write(uuid[:])
 		h.Write(text)
 		u := h.Sum(nil)[:16]
 		u[6] = (u[6] & 0x0f) | (5 << 4)

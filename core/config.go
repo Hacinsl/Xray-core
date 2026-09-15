@@ -14,19 +14,20 @@ import (
 )
 
 // ConfigFormat is a configurable format of Xray config file.
-type ConfigFormat struct {
-	Name      string
-	Extension []string
-	Loader    ConfigLoader
-}
+// type ConfigFormat struct {
+// 	Name      string
+// 	Extension []string
+// 	Loader    ConfigLoader
+// }
 
 type ConfigSource struct {
 	Name   string
 	Format string
+	Reader io.Reader
 }
 
 // ConfigLoader is a utility to load Xray config from external source.
-type ConfigLoader func(input interface{}) (*Config, error)
+// type ConfigLoader func(input interface{}) (*Config, error)
 
 // ConfigBuilder is a builder to build core.Config from filenames and formats
 type ConfigBuilder func(files []*ConfigSource) (*Config, error)
@@ -35,31 +36,33 @@ type ConfigBuilder func(files []*ConfigSource) (*Config, error)
 type ConfigsMerger func(files []*ConfigSource) (string, error)
 
 var (
-	configLoaderByName    = make(map[string]*ConfigFormat)
-	configLoaderByExt     = make(map[string]*ConfigFormat)
+	// configLoaderByName    = make(map[string]*ConfigFormat)
+	// configLoaderByExt     = make(map[string]*ConfigFormat)
 	ConfigBuilderForFiles ConfigBuilder
 	ConfigMergedFormFiles ConfigsMerger
 )
 
 // RegisterConfigLoader add a new ConfigLoader.
-func RegisterConfigLoader(format *ConfigFormat) error {
-	name := strings.ToLower(format.Name)
-	if _, found := configLoaderByName[name]; found {
-		return errors.New(format.Name, " already registered.")
-	}
-	configLoaderByName[name] = format
+// Config loading is not actually handled by ConfigLoader.
+// func RegisterConfigLoader(format *ConfigFormat) error {
+// 	name := strings.ToLower(format.Name)
+// 	if _, found := configLoaderByName[name]; found {
+// 		return errors.New(format.Name, " already registered.")
+// 	}
+// 	configLoaderByName[name] = format
 
-	for _, ext := range format.Extension {
-		lext := strings.ToLower(ext)
-		if f, found := configLoaderByExt[lext]; found {
-			return errors.New(ext, " already registered to ", f.Name)
-		}
-		configLoaderByExt[lext] = format
-	}
+// 	for _, ext := range format.Extension {
+// 		lext := strings.ToLower(ext)
+// 		if f, found := configLoaderByExt[lext]; found {
+// 			return errors.New(ext, " already registered to ", f.Name)
+// 		}
+// 		configLoaderByExt[lext] = format
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
+// Only for dumpConfig
 func GetMergedConfig(args cmdarg.Arg) (string, error) {
 	var files []*ConfigSource
 	supported := []string{"json", "yaml", "toml"}
@@ -110,10 +113,8 @@ func LoadConfig(formatName string, input interface{}) (*Config, error) {
 	switch v := input.(type) {
 	case cmdarg.Arg:
 		files := make([]*ConfigSource, len(v))
-		hasProtobuf := false
 		for i, file := range v {
 			var f string
-
 			if formatName == "auto" {
 				if file != "stdin:" {
 					f = GetFormat(file)
@@ -123,37 +124,36 @@ func LoadConfig(formatName string, input interface{}) (*Config, error) {
 			} else {
 				f = formatName
 			}
-
 			if f == "" {
 				return nil, errors.New("Failed to get format of ", file).AtWarning()
 			}
-
 			if f == "protobuf" {
-				hasProtobuf = true
+				return ProtobufLoader(v)
 			}
-			files[i] = &ConfigSource{
-				Name:   file,
-				Format: f,
-			}
+			files[i] = &ConfigSource{Name: file, Format: f}
 		}
 
 		// only one protobuf config file is allowed
-		if hasProtobuf {
-			if len(v) == 1 {
-				return configLoaderByName["protobuf"].Loader(v)
-			} else {
-				return nil, errors.New("Only one protobuf config file is allowed").AtWarning()
-			}
-		}
+		// if hasProtobuf {
+		// 	if len(v) == 1 {
+		// 		return configLoaderByName["protobuf"].Loader(v)
+		// 	} else {
+		// 		return nil, errors.New("Only one protobuf config file is allowed").AtWarning()
+		// 	}
+		// }
 
 		// to avoid import cycle
 		return ConfigBuilderForFiles(files)
+	// Only for test and external use
 	case io.Reader:
-		if f, found := configLoaderByName[formatName]; found {
-			return f.Loader(v)
-		} else {
-			return nil, errors.New("Unable to load config in", formatName).AtWarning()
-		}
+		// if f, found := configLoaderByName[formatName]; found {
+		// 	return f.Loader(v)
+		// } else {
+		// 	return nil, errors.New("Unable to load config in", formatName).AtWarning()
+		// }
+		return ConfigBuilderForFiles([]*ConfigSource{
+			{Name: formatName, Format: formatName, Reader: v},
+		})
 	}
 
 	return nil, errors.New("Unable to load config").AtWarning()
@@ -167,25 +167,45 @@ func loadProtobufConfig(data []byte) (*Config, error) {
 	return config, nil
 }
 
-func init() {
-	common.Must(RegisterConfigLoader(&ConfigFormat{
-		Name:      "Protobuf",
-		Extension: []string{"pb"},
-		Loader: func(input interface{}) (*Config, error) {
-			switch v := input.(type) {
-			case cmdarg.Arg:
-				r, err := confloader.LoadConfig(v[0])
-				common.Must(err)
-				data, err := buf.ReadAllToBytes(r)
-				common.Must(err)
-				return loadProtobufConfig(data)
-			case io.Reader:
-				data, err := buf.ReadAllToBytes(v)
-				common.Must(err)
-				return loadProtobufConfig(data)
-			default:
-				return nil, errors.New("unknown type")
-			}
-		},
-	}))
+func ProtobufLoader(input interface{}) (*Config, error) {
+	switch v := input.(type) {
+	case cmdarg.Arg:
+		if len(v) != 1 {
+			return nil, errors.New("Only one protobuf config file is allowed").AtWarning()
+		}
+		r, err := confloader.LoadConfig(v[0])
+		common.Must(err)
+		data, err := buf.ReadAllToBytes(r)
+		common.Must(err)
+		return loadProtobufConfig(data)
+	case io.Reader:
+		data, err := buf.ReadAllToBytes(v)
+		common.Must(err)
+		return loadProtobufConfig(data)
+	default:
+		return nil, errors.New("unknown type")
+	}
 }
+
+// func init() {
+// 	common.Must(RegisterConfigLoader(&ConfigFormat{
+// 		Name:      "Protobuf",
+// 		Extension: []string{"pb"},
+// 		Loader: func(input interface{}) (*Config, error) {
+// 			switch v := input.(type) {
+// 			case cmdarg.Arg:
+// 				r, err := confloader.LoadConfig(v[0])
+// 				common.Must(err)
+// 				data, err := buf.ReadAllToBytes(r)
+// 				common.Must(err)
+// 				return loadProtobufConfig(data)
+// 			case io.Reader:
+// 				data, err := buf.ReadAllToBytes(v)
+// 				common.Must(err)
+// 				return loadProtobufConfig(data)
+// 			default:
+// 				return nil, errors.New("unknown type")
+// 			}
+// 		},
+// 	}))
+// }
