@@ -61,6 +61,7 @@ func RegisterDefaultHandler(handler Handler) {
 	defaultLogHandler = handler
 }
 
+// syncHandler protect Handler from being changed while calling Handle.
 type syncHandler struct {
 	sync.RWMutex
 	Handler

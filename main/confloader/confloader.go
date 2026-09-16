@@ -1,7 +1,6 @@
 package confloader
 
 import (
-	"context"
 	"io"
 	"os"
 
@@ -18,7 +17,7 @@ var EffectiveConfigFileLoader configFileLoader
 // actual work is in external module
 func LoadConfig(file string) (io.Reader, error) {
 	if EffectiveConfigFileLoader == nil {
-		errors.LogInfo(context.Background(), "external config module not loaded, reading from stdin")
+		errors.LogDefaultInfo("external config module not loaded, reading from stdin")
 		return os.Stdin, nil
 	}
 	return EffectiveConfigFileLoader(file)

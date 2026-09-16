@@ -1,7 +1,6 @@
 package conf
 
 import (
-	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -347,10 +346,10 @@ func (c *OutboundDetourConfig) Build() (*core.OutboundHandlerConfig, error) {
 
 		var strategy internet.DomainStrategy
 		if strategy = senderSettings.TargetStrategy; strategy != internet.DomainStrategy_AS_IS {
-			errors.LogWarning(context.Background(), `The "outbound.targetStrategy" setting is not supported directly by freedom and has been automatically migrated to "sockopt.domainStrategy" with no behavior change.`)
+			errors.LogDefaultWarning(`The "outbound.targetStrategy" setting is not supported directly by freedom and has been automatically migrated to "sockopt.domainStrategy" with no behavior change.`)
 			senderSettings.TargetStrategy = internet.DomainStrategy_AS_IS
 		} else if strategy = fc.DomainStrategy; strategy != internet.DomainStrategy_AS_IS {
-			errors.LogWarning(context.Background(), `The "freedom.domainStrategy" setting is deprecated and will be removed. For compatibility, its value has been automatically migrated to "sockopt.domainStrategy". Please update your config before removal.`)
+			errors.LogDefaultWarning(`The "freedom.domainStrategy" setting is deprecated and will be removed. For compatibility, its value has been automatically migrated to "sockopt.domainStrategy". Please update your config before removal.`)
 		}
 		if strategy != internet.DomainStrategy_AS_IS {
 			if senderSettings.StreamSettings == nil {

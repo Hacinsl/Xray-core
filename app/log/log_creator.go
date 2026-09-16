@@ -43,11 +43,11 @@ func createHandler(logType LogType, options HandlerCreatorOptions) (log.Handler,
 
 func init() {
 	common.Must(RegisterHandlerCreator(LogType_Console, func(lt LogType, options HandlerCreatorOptions) (log.Handler, error) {
-		return log.NewLogger(log.CreateStdoutLogWriter()), nil
+		return log.NewLogger(log.StdoutLogWriterCreator()), nil
 	}))
 
 	common.Must(RegisterHandlerCreator(LogType_File, func(lt LogType, options HandlerCreatorOptions) (log.Handler, error) {
-		creator, err := log.CreateFileLogWriter(options.Path)
+		creator, err := log.FileLogWriterCreator(options.Path)
 		if err != nil {
 			return nil, err
 		}

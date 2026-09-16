@@ -4,7 +4,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/xtls/xray-core/common/platform"
@@ -28,8 +27,7 @@ type generalLogger struct {
 	done    *done.Instance
 }
 
-type syncLogger struct {
-	mu     sync.Mutex
+type defaultLogger struct {
 	writer Writer
 }
 
@@ -48,34 +46,21 @@ func NewLogger(logWriterCreator WriterCreator) Handler {
 	}
 }
 
-// NewSyncLogger returns a sync log handler that only support basic messages.
-func NewSyncLogger(creator WriterCreator) Handler {
+// NewDefaultLogger returns a direct log handler that can handle all type of messages.
+func NewDefaultLogger(creator WriterCreator) Handler {
 	w := creator()
 	if w == nil {
-		w = CreateStdoutLogWriter()() // Use console as fallback.
+		w = StdoutLogWriterCreator()() // Use console as fallback.
 	}
-	return &syncLogger{writer: w}
+	return &defaultLogger{writer: w}
 }
 
-func (l *syncLogger) Handle(msg Message) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
+func (l *defaultLogger) Handle(msg Message) {
 	_ = l.writer.Write(msg.String() + platform.LineSeparator())
 }
 
-func (l *syncLogger) Close() error {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	if l.writer == nil {
-		return nil
-	}
-	err := l.writer.Close()
-	l.writer = nil
-	return err
-}
-
 func ReplaceWithSeverityLogger(serverity Severity) {
-	w := CreateStdoutLogWriter()
+	w := StdoutLogWriterCreator()
 	g := &generalLogger{
 		creator: w,
 		buffer:  make(chan Message, 128),
@@ -86,10 +71,11 @@ func ReplaceWithSeverityLogger(serverity Severity) {
 		inner:    g,
 		logLevel: serverity,
 	}
-	RegisterHandler(s) // This line should be removed once all pre-build configuration log outputs have been migrated to the default logger.
+	// RegisterHandler(s) // This line should be removed once all pre-build configuration log outputs have been migrated to the default logger.
 	RegisterDefaultHandler(s)
 }
 
+// Only for ReplaceWithSeverityLogger, which only used in -dump.
 func (l *serverityLogger) Handle(msg Message) {
 	switch msg := msg.(type) {
 	case *GeneralMessage:
@@ -117,6 +103,9 @@ func (l *generalLogger) run() {
 	for {
 		select {
 		case <-l.done.Wait():
+			// The logger is closed. Write out every accepted message that is still buffered
+			// before the writer is closed by the deferred call above, so that nothing is lost.
+			l.flush(logger)
 			return
 		case msg := <-l.buffer:
 			logger.Write(msg.String() + platform.LineSeparator())
@@ -130,10 +119,30 @@ func (l *generalLogger) run() {
 	}
 }
 
+// flush writes out all messages that are buffered at the moment of the call. It returns once the
+// buffer is empty.
+func (l *generalLogger) flush(w Writer) {
+	for {
+		select {
+		case msg := <-l.buffer:
+			w.Write(msg.String() + platform.LineSeparator())
+		default:
+			return
+		}
+	}
+}
+
 func (l *generalLogger) Handle(msg Message) {
+	// A closed logger must not accept new messages, otherwise run() would be started again and
+	// the writer would be created once more.
+	if l.done.Done() {
+		return
+	}
+
 	select {
 	case l.buffer <- msg:
 	default:
+		os.Stderr.Write([]byte("Log buffer is full. New Log has been dropped."))
 	}
 
 	select {
@@ -143,8 +152,23 @@ func (l *generalLogger) Handle(msg Message) {
 	}
 }
 
+// Close stops the logger. It returns after the buffered messages have been written out and the
+// writer has been closed, or after closeTimeout if the writer is stuck. Close is idempotent and
+// must not be called concurrently with Handle.
 func (l *generalLogger) Close() error {
-	return l.done.Close()
+	if l.done.Done() {
+		return nil
+	}
+	_ = l.done.Close()
+
+	// run() holds the access permit for its whole lifetime and returns it only after flushing the
+	// buffer and closing the writer. Acquiring the permit therefore means that the last writer is
+	// gone, and that Handle() will not start a new one.
+	select {
+	case <-l.access.Wait():
+	case <-time.After(5 * time.Second):
+	}
+	return nil
 }
 
 type consoleLogWriter struct {
@@ -174,8 +198,8 @@ func (w *fileLogWriter) Close() error {
 	return w.file.Close()
 }
 
-// CreateStdoutLogWriter returns a LogWriterCreator that creates LogWriter for stdout.
-func CreateStdoutLogWriter() WriterCreator {
+// StdoutLogWriterCreator returns a LogWriterCreator that creates LogWriter for stdout.
+func StdoutLogWriterCreator() WriterCreator {
 	return func() Writer {
 		return &consoleLogWriter{
 			logger: log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lmicroseconds),
@@ -183,8 +207,8 @@ func CreateStdoutLogWriter() WriterCreator {
 	}
 }
 
-// CreateStderrLogWriter returns a LogWriterCreator that creates LogWriter for stderr.
-func CreateStderrLogWriter() WriterCreator {
+// StderrLogWriterCreator returns a LogWriterCreator that creates LogWriter for stderr.
+func StderrLogWriterCreator() WriterCreator {
 	return func() Writer {
 		return &consoleLogWriter{
 			logger: log.New(os.Stderr, "", log.Ldate|log.Ltime|log.Lmicroseconds),
@@ -192,8 +216,8 @@ func CreateStderrLogWriter() WriterCreator {
 	}
 }
 
-// CreateFileLogWriter returns a LogWriterCreator that creates LogWriter for the given file.
-func CreateFileLogWriter(path string) (WriterCreator, error) {
+// FileLogWriterCreator returns a LogWriterCreator that creates LogWriter for the given file.
+func FileLogWriterCreator(path string) (WriterCreator, error) {
 	file, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0o600)
 	if err != nil {
 		return nil, err
@@ -212,6 +236,5 @@ func CreateFileLogWriter(path string) (WriterCreator, error) {
 }
 
 func init() {
-	// RegisterHandler(NewSyncLogger(CreateStdoutLogWriter()))
-	RegisterDefaultHandler(NewSyncLogger(CreateStdoutLogWriter()))
+	RegisterDefaultHandler(NewDefaultLogger(StdoutLogWriterCreator()))
 }

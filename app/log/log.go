@@ -146,19 +146,23 @@ func (g *Instance) Close() error {
 	errors.LogDebug(context.Background(), "Logger closing")
 
 	g.Lock()
-	defer g.Unlock()
 
 	if !g.active {
+		g.Unlock()
 		return nil
 	}
 
 	g.active = false
 
-	common.Close(g.accessLogger)
+	// Take the handlers out before unlocking: closing them waits until the buffered logs are
+	// written out, and no log call should be blocked while waiting.
+	accessLogger, errorLogger := g.accessLogger, g.errorLogger
 	g.accessLogger = nil
-
-	common.Close(g.errorLogger)
 	g.errorLogger = nil
+	g.Unlock()
+
+	common.Close(accessLogger)
+	common.Close(errorLogger)
 
 	return nil
 }
