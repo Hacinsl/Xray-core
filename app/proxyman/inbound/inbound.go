@@ -178,7 +178,7 @@ func NewHandler(ctx context.Context, config *core.InboundHandlerConfig) (inbound
 		ctx = session.ContextWithAllowedNetwork(ctx, net.Network_UDP)
 	}
 
-	return NewAlwaysOnInboundHandler(ctx, tag, receiverSettings, proxySettings)
+	return NewInboundHandler(ctx, tag, receiverSettings, proxySettings)
 }
 
 func init() {

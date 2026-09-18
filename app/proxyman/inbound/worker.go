@@ -34,7 +34,7 @@ type worker interface {
 	Proxy() proxy.Inbound
 }
 
-type tcpWorker struct {
+type streamWorker struct {
 	address         net.Address
 	port            net.Port
 	proxy           proxy.Inbound
@@ -58,7 +58,7 @@ func getTProxyType(s *internet.MemoryStreamConfig) internet.SocketConfig_TProxyM
 	return s.SocketSettings.Tproxy
 }
 
-func (w *tcpWorker) callback(conn stat.Connection) {
+func (w *streamWorker) callback(conn stat.Connection) {
 	ctx, cancel := context.WithCancel(w.ctx)
 	sid := session.NewID()
 	ctx = c.ContextWithID(ctx, sid)
@@ -120,18 +120,18 @@ func (w *tcpWorker) callback(conn stat.Connection) {
 	content.SniffingRequest = w.sniffingRequest
 	ctx = session.ContextWithContent(ctx, content)
 
-	if err := w.proxy.Process(ctx, net.Network_TCP, conn, w.dispatcher); err != nil {
+	if err := w.proxy.Process(ctx, net.Delivery_Stream, conn, w.dispatcher); err != nil {
 		errors.LogInfoInner(ctx, err, "connection ends")
 	}
 	cancel()
 	conn.Close()
 }
 
-func (w *tcpWorker) Proxy() proxy.Inbound {
+func (w *streamWorker) Proxy() proxy.Inbound {
 	return w.proxy
 }
 
-func (w *tcpWorker) Start() error {
+func (w *streamWorker) Start() error {
 	ctx := context.Background()
 
 	if v, ok := w.proxy.(*hysteria_proxy.Server); ok {
@@ -148,7 +148,7 @@ func (w *tcpWorker) Start() error {
 	return nil
 }
 
-func (w *tcpWorker) Close() error {
+func (w *streamWorker) Close() error {
 	var errs []interface{}
 	if w.hub != nil {
 		if err := common.Close(w.hub); err != nil {
@@ -165,7 +165,7 @@ func (w *tcpWorker) Close() error {
 	return nil
 }
 
-func (w *tcpWorker) Port() net.Port {
+func (w *streamWorker) Port() net.Port {
 	return w.port
 }
 
@@ -256,7 +256,7 @@ type connID struct {
 	dest net.Destination
 }
 
-type udpWorker struct {
+type packetWorker struct {
 	sync.RWMutex
 
 	proxy           proxy.Inbound
@@ -277,7 +277,7 @@ type udpWorker struct {
 	cone bool
 }
 
-func (w *udpWorker) getConnection(id connID) (*udpConn, bool) {
+func (w *packetWorker) getConnection(id connID) (*udpConn, bool) {
 	w.Lock()
 	defer w.Unlock()
 
@@ -311,7 +311,7 @@ func (w *udpWorker) getConnection(id connID) (*udpConn, bool) {
 	return conn, false
 }
 
-func (w *udpWorker) callback(b *buf.Buffer, source net.Destination, originalDest net.Destination) {
+func (w *packetWorker) callback(b *buf.Buffer, source net.Destination, originalDest net.Destination) {
 	id := connID{
 		src: source,
 	}
@@ -358,7 +358,7 @@ func (w *udpWorker) callback(b *buf.Buffer, source net.Destination, originalDest
 			content := new(session.Content)
 			content.SniffingRequest = w.sniffingRequest
 			ctx = session.ContextWithContent(ctx, content)
-			if err := w.proxy.Process(ctx, net.Network_UDP, conn, w.dispatcher); err != nil {
+			if err := w.proxy.Process(ctx, net.Delivery_Packet, conn, w.dispatcher); err != nil {
 				errors.LogInfoInner(ctx, err, "connection ends")
 			}
 			conn.Close()
@@ -371,20 +371,20 @@ func (w *udpWorker) callback(b *buf.Buffer, source net.Destination, originalDest
 	}
 }
 
-func (w *udpWorker) removeConn(id connID) {
+func (w *packetWorker) removeConn(id connID) {
 	w.Lock()
 	delete(w.activeConn, id)
 	w.Unlock()
 }
 
-func (w *udpWorker) handlePackets() {
+func (w *packetWorker) handlePackets() {
 	receive := w.hub.Receive()
 	for payload := range receive {
 		w.callback(payload.Payload, payload.Source, payload.Target)
 	}
 }
 
-func (w *udpWorker) clean() error {
+func (w *packetWorker) clean() error {
 	nowSec := time.Now().Unix()
 	w.Lock()
 	defer w.Unlock()
@@ -410,7 +410,7 @@ func (w *udpWorker) clean() error {
 	return nil
 }
 
-func (w *udpWorker) Start() error {
+func (w *packetWorker) Start() error {
 	w.activeConn = make(map[connID]*udpConn, 16)
 	ctx := context.Background()
 	h, err := udp.ListenUDP(ctx, w.address, w.port, w.stream, udp.HubCapacity(256))
@@ -430,7 +430,7 @@ func (w *udpWorker) Start() error {
 	return nil
 }
 
-func (w *udpWorker) Close() error {
+func (w *packetWorker) Close() error {
 	w.Lock()
 	defer w.Unlock()
 
@@ -458,15 +458,15 @@ func (w *udpWorker) Close() error {
 	return nil
 }
 
-func (w *udpWorker) Port() net.Port {
+func (w *packetWorker) Port() net.Port {
 	return w.port
 }
 
-func (w *udpWorker) Proxy() proxy.Inbound {
+func (w *packetWorker) Proxy() proxy.Inbound {
 	return w.proxy
 }
 
-type dsWorker struct {
+type unixWorker struct {
 	address         net.Address
 	proxy           proxy.Inbound
 	stream          *internet.MemoryStreamConfig
@@ -481,7 +481,7 @@ type dsWorker struct {
 	ctx context.Context
 }
 
-func (w *dsWorker) callback(conn stat.Connection) {
+func (w *unixWorker) callback(conn stat.Connection) {
 	ctx, cancel := context.WithCancel(w.ctx)
 	sid := session.NewID()
 	ctx = c.ContextWithID(ctx, sid)
@@ -505,7 +505,7 @@ func (w *dsWorker) callback(conn stat.Connection) {
 	content.SniffingRequest = w.sniffingRequest
 	ctx = session.ContextWithContent(ctx, content)
 
-	if err := w.proxy.Process(ctx, net.Network_UNIX, conn, w.dispatcher); err != nil {
+	if err := w.proxy.Process(ctx, net.Delivery_Unix, conn, w.dispatcher); err != nil {
 		errors.LogInfoInner(ctx, err, "connection ends")
 	}
 	cancel()
@@ -514,15 +514,15 @@ func (w *dsWorker) callback(conn stat.Connection) {
 	}
 }
 
-func (w *dsWorker) Proxy() proxy.Inbound {
+func (w *unixWorker) Proxy() proxy.Inbound {
 	return w.proxy
 }
 
-func (w *dsWorker) Port() net.Port {
+func (w *unixWorker) Port() net.Port {
 	return net.Port(0)
 }
 
-func (w *dsWorker) Start() error {
+func (w *unixWorker) Start() error {
 	ctx := context.Background()
 	hub, err := internet.ListenUnix(ctx, w.address, w.stream, func(conn stat.Connection) {
 		go w.callback(conn)
@@ -534,7 +534,7 @@ func (w *dsWorker) Start() error {
 	return nil
 }
 
-func (w *dsWorker) Close() error {
+func (w *unixWorker) Close() error {
 	var errs []interface{}
 	if w.hub != nil {
 		if err := common.Close(w.hub); err != nil {

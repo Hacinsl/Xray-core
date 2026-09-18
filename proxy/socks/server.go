@@ -57,13 +57,13 @@ func (s *Server) policy() policy.Session {
 	return p
 }
 
-// Network implements proxy.Inbound.
-func (s *Server) Network() []net.Network {
-	return []net.Network{net.Network_TCP}
+// Delivery implements proxy.Inbound.
+func (s *Server) Delivery() []net.Delivery {
+	return []net.Delivery{net.Delivery_Stream}
 }
 
 // Process implements proxy.Inbound.
-func (s *Server) Process(ctx context.Context, network net.Network, conn stat.Connection, dispatcher routing.Dispatcher) error {
+func (s *Server) Process(ctx context.Context, network net.Delivery, conn stat.Connection, dispatcher routing.Dispatcher) error {
 	inbound := session.InboundFromContext(ctx)
 	inbound.Name = "socks"
 	inbound.CanSpliceCopy = 2
@@ -75,7 +75,7 @@ func (s *Server) Process(ctx context.Context, network net.Network, conn stat.Con
 	}
 
 	switch network {
-	case net.Network_TCP:
+	case net.Delivery_Stream:
 		firstbyte := make([]byte, 1)
 		if n, err := conn.Read(firstbyte); n == 0 {
 			if goerrors.Is(err, io.EOF) {
@@ -90,7 +90,7 @@ func (s *Server) Process(ctx context.Context, network net.Network, conn stat.Con
 		}
 		return s.processTCP(ctx, conn, dispatcher, firstbyte)
 	default:
-		return errors.New("unknown network: ", network)
+		return errors.New("unknown delivery: ", network)
 	}
 }
 

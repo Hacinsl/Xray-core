@@ -35,21 +35,21 @@ func init() {
 }
 
 type RelayInbound struct {
-	networks     []net.Network
+	deliveries   []net.Delivery
 	destinations []*RelayDestination
 	service      *shadowaead_2022.RelayService[int]
 }
 
 func NewRelayServer(ctx context.Context, config *RelayServerConfig) (*RelayInbound, error) {
-	networks := config.Network
-	if len(networks) == 0 {
-		networks = []net.Network{
-			net.Network_TCP,
-			net.Network_UDP,
+	deliveries := net.ToDeliveries(config.Network)
+	if len(deliveries) == 0 {
+		deliveries = []net.Delivery{
+			net.Delivery_Stream,
+			net.Delivery_Packet,
 		}
 	}
 	inbound := &RelayInbound{
-		networks:     networks,
+		deliveries:   deliveries,
 		destinations: config.Destinations,
 	}
 	if !C.Contains(shadowaead_2022.List, config.Method) || !strings.Contains(config.Method, "aes") {
@@ -83,11 +83,11 @@ func NewRelayServer(ctx context.Context, config *RelayServerConfig) (*RelayInbou
 	return inbound, nil
 }
 
-func (i *RelayInbound) Network() []net.Network {
-	return i.networks
+func (i *RelayInbound) Delivery() []net.Delivery {
+	return i.deliveries
 }
 
-func (i *RelayInbound) Process(ctx context.Context, network net.Network, connection stat.Connection, dispatcher routing.Dispatcher) error {
+func (i *RelayInbound) Process(ctx context.Context, network net.Delivery, connection stat.Connection, dispatcher routing.Dispatcher) error {
 	inbound := session.InboundFromContext(ctx)
 	inbound.Name = "shadowsocks-2022-relay"
 	inbound.CanSpliceCopy = 3
@@ -99,7 +99,7 @@ func (i *RelayInbound) Process(ctx context.Context, network net.Network, connect
 
 	ctx = session.ContextWithDispatcher(ctx, dispatcher)
 
-	if network == net.Network_TCP {
+	if network == net.Delivery_Stream {
 		return singbridge.ReturnError(i.service.NewConnection(ctx, connection, metadata))
 	} else {
 		reader := buf.NewReader(connection)

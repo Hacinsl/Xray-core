@@ -69,7 +69,7 @@ var _ common.Runnable = (*Handler)(nil)
 
 // Init the Handler instance with necessary parameters
 func (t *Handler) Init(ctx context.Context, pm policy.Manager, dispatcher routing.Dispatcher) error {
-	// Retrieve tag and sniffing config from context (set by AlwaysOnInboundHandler)
+	// Retrieve tag and sniffing config from context (set by InboundHandler)
 	if inbound := session.InboundFromContext(ctx); inbound != nil {
 		t.tag = inbound.Tag
 	}
@@ -246,16 +246,16 @@ func (t *Handler) Close() error {
 	return errors.Combine(common.CloseIfExists(t.stack), common.CloseIfExists(t.tun))
 }
 
-// Network implements proxy.Inbound
+// Delivery implements proxy.Inbound
 // and exists only to comply to proxy interface, declaring it doesn't listen on any network,
 // making the process not open any port for this inbound (input will be network interface)
-func (t *Handler) Network() []net.Network {
-	return []net.Network{}
+func (t *Handler) Delivery() []net.Delivery {
+	return []net.Delivery{}
 }
 
 // Process implements proxy.Inbound
 // and exists only to comply to proxy interface, which should never get any inputs due to no listening ports
-func (t *Handler) Process(ctx context.Context, network net.Network, conn stat.Connection, dispatcher routing.Dispatcher) error {
+func (t *Handler) Process(ctx context.Context, _ net.Delivery, conn stat.Connection, dispatcher routing.Dispatcher) error {
 	return nil
 }
 

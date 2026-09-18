@@ -14,5 +14,12 @@ enum Network {
   UNIX = 4;
 }
 
+enum Delivery {
+  Unspecified = 0;
+  Stream = 1;
+  Packet = 2;
+  Unix = 3;
+}
+
 // NetworkList is a list of Networks.
 message NetworkList { repeated Network network = 1; }

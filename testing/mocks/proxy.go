@@ -39,22 +39,22 @@ func (m *ProxyInbound) EXPECT() *ProxyInboundMockRecorder {
 	return m.recorder
 }
 
-// Network mocks base method
-func (m *ProxyInbound) Network() []net.Network {
+// Delivery mocks base method
+func (m *ProxyInbound) Delivery() []net.Delivery {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Network")
-	ret0, _ := ret[0].([]net.Network)
+	ret := m.ctrl.Call(m, "Delivery")
+	ret0, _ := ret[0].([]net.Delivery)
 	return ret0
 }
 
-// Network indicates an expected call of Network
-func (mr *ProxyInboundMockRecorder) Network() *gomock.Call {
+// Delivery indicates an expected call of Delivery
+func (mr *ProxyInboundMockRecorder) Delivery() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Network", reflect.TypeOf((*ProxyInbound)(nil).Network))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delivery", reflect.TypeOf((*ProxyInbound)(nil).Delivery))
 }
 
 // Process mocks base method
-func (m *ProxyInbound) Process(arg0 context.Context, arg1 net.Network, arg2 stat.Connection, arg3 routing.Dispatcher) error {
+func (m *ProxyInbound) Process(arg0 context.Context, arg1 net.Delivery, arg2 stat.Connection, arg3 routing.Dispatcher) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Process", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)

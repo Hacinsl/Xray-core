@@ -142,9 +142,9 @@ func (h *Handler) Close() error {
 	)
 }
 
-// Network implements proxy.Inbound.Network().
-func (*Handler) Network() []net.Network {
-	return []net.Network{net.Network_TCP, net.Network_UNIX}
+// Delivery implements proxy.Inbound.Delivery().
+func (*Handler) Delivery() []net.Delivery {
+	return []net.Delivery{net.Delivery_Stream, net.Delivery_Unix}
 }
 
 func (h *Handler) GetOrGenerateUser(email string) *protocol.MemoryUser {
@@ -224,7 +224,7 @@ func transferResponse(timer signal.ActivityUpdater, session *encoding.ServerSess
 }
 
 // Process implements proxy.Inbound.Process().
-func (h *Handler) Process(ctx context.Context, network net.Network, connection stat.Connection, dispatcher routing.Dispatcher) error {
+func (h *Handler) Process(ctx context.Context, _ net.Delivery, connection stat.Connection, dispatcher routing.Dispatcher) error {
 	sessionPolicy := h.policyManager.ForLevel(0)
 	if err := connection.SetReadDeadline(time.Now().Add(sessionPolicy.Timeouts.Handshake)); err != nil {
 		return errors.New("unable to set read deadline").Base(err).AtWarning()

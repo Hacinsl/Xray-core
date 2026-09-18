@@ -78,26 +78,25 @@ func (s *Server) GetUsersCount(context.Context) int64 {
 	return s.validator.GetCount()
 }
 
-func (s *Server) Network() []net.Network {
-	list := s.config.Network
-	if len(list) == 0 {
-		list = append(list, net.Network_TCP)
+func (s *Server) Delivery() []net.Delivery {
+	if len(s.config.Network) == 0 {
+		return []net.Delivery{net.Delivery_Stream}
 	}
-	return list
+	return net.ToDeliveries(s.config.Network)
 }
 
-func (s *Server) Process(ctx context.Context, network net.Network, conn stat.Connection, dispatcher routing.Dispatcher) error {
+func (s *Server) Process(ctx context.Context, network net.Delivery, conn stat.Connection, dispatcher routing.Dispatcher) error {
 	inbound := session.InboundFromContext(ctx)
 	inbound.Name = "shadowsocks"
 	inbound.CanSpliceCopy = 3
 
 	switch network {
-	case net.Network_TCP:
+	case net.Delivery_Stream:
 		return s.handleConnection(ctx, conn, dispatcher)
-	case net.Network_UDP:
+	case net.Delivery_Packet:
 		return s.handleUDPPayload(ctx, conn, dispatcher)
 	default:
-		return errors.New("unknown network: ", network)
+		return errors.New("unknown delivery: ", network)
 	}
 }
 

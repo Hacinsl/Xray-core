@@ -2,7 +2,6 @@ package dokodemo
 
 import (
 	"context"
-	"slices"
 	"strconv"
 	"strings"
 
@@ -55,12 +54,13 @@ func (d *DokodemoDoor) Init(config *Config, pm policy.Manager, sockopt *session.
 	return nil
 }
 
-// Network implements proxy.Inbound.
-func (d *DokodemoDoor) Network() []net.Network {
-	if slices.Contains(d.config.AllowedNetworks, net.Network_TCP) {
-		return append(d.config.AllowedNetworks, net.Network_UNIX)
+// Delivery implements proxy.Inbound.
+func (d *DokodemoDoor) Delivery() []net.Delivery {
+	deliveries := net.ToDeliveries(d.config.AllowedNetworks)
+	if net.HasDelivery(deliveries, net.Delivery_Stream) {
+		return append(deliveries, net.Delivery_Unix)
 	}
-	return d.config.AllowedNetworks
+	return deliveries
 }
 
 func (d *DokodemoDoor) policy() policy.Session {
@@ -70,14 +70,15 @@ func (d *DokodemoDoor) policy() policy.Session {
 }
 
 // Process implements proxy.Inbound.
-func (d *DokodemoDoor) Process(ctx context.Context, network net.Network, conn stat.Connection, dispatcher routing.Dispatcher) error {
+func (d *DokodemoDoor) Process(ctx context.Context, network net.Delivery, conn stat.Connection, dispatcher routing.Dispatcher) error {
 	errors.LogDebug(ctx, "processing connection from: ", conn.RemoteAddr())
 	// forward to TCP if from UNIX
-	if network == net.Network_UNIX {
-		network = net.Network_TCP
+	destNetwork := network.ToNetwork()
+	if destNetwork == net.Network_UNIX {
+		destNetwork = net.Network_TCP
 	}
 	dest := net.Destination{
-		Network: network,
+		Network: destNetwork,
 		Address: d.rewriteAddress,
 		Port:    d.rewritePort,
 	}
@@ -158,7 +159,7 @@ func (d *DokodemoDoor) Process(ctx context.Context, network net.Network, conn st
 	}
 
 	var writer buf.Writer
-	if network == net.Network_TCP {
+	if destNetwork == net.Network_TCP {
 		writer = buf.NewWriter(conn)
 	} else {
 		// if we are in TPROXY mode, use linux's udp forging functionality

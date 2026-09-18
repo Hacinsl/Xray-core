@@ -38,17 +38,17 @@ func init() {
 
 type MultiUserInbound struct {
 	sync.Mutex
-	networks []net.Network
-	users    []*protocol.MemoryUser
-	service  *shadowaead_2022.MultiService[int]
+	deliveries []net.Delivery
+	users      []*protocol.MemoryUser
+	service    *shadowaead_2022.MultiService[int]
 }
 
 func NewMultiServer(ctx context.Context, config *MultiUserServerConfig) (*MultiUserInbound, error) {
-	networks := config.Network
-	if len(networks) == 0 {
-		networks = []net.Network{
-			net.Network_TCP,
-			net.Network_UDP,
+	deliveries := net.ToDeliveries(config.Network)
+	if len(deliveries) == 0 {
+		deliveries = []net.Delivery{
+			net.Delivery_Stream,
+			net.Delivery_Packet,
 		}
 	}
 	memUsers := []*protocol.MemoryUser{}
@@ -65,8 +65,8 @@ func NewMultiServer(ctx context.Context, config *MultiUserServerConfig) (*MultiU
 	}
 
 	inbound := &MultiUserInbound{
-		networks: networks,
-		users:    memUsers,
+		deliveries: deliveries,
+		users:      memUsers,
 	}
 	if config.Key == "" {
 		return nil, errors.New("missing key")
@@ -185,11 +185,11 @@ func (i *MultiUserInbound) GetUsersCount(context.Context) int64 {
 	return int64(len(i.users))
 }
 
-func (i *MultiUserInbound) Network() []net.Network {
-	return i.networks
+func (i *MultiUserInbound) Delivery() []net.Delivery {
+	return i.deliveries
 }
 
-func (i *MultiUserInbound) Process(ctx context.Context, network net.Network, connection stat.Connection, dispatcher routing.Dispatcher) error {
+func (i *MultiUserInbound) Process(ctx context.Context, network net.Delivery, connection stat.Connection, dispatcher routing.Dispatcher) error {
 	inbound := session.InboundFromContext(ctx)
 	inbound.Name = "shadowsocks-2022-multi"
 	inbound.CanSpliceCopy = 3
@@ -201,7 +201,7 @@ func (i *MultiUserInbound) Process(ctx context.Context, network net.Network, con
 
 	ctx = session.ContextWithDispatcher(ctx, dispatcher)
 
-	if network == net.Network_TCP {
+	if network == net.Delivery_Stream {
 		return singbridge.ReturnError(i.service.NewConnection(ctx, connection, metadata))
 	} else {
 		reader := buf.NewReader(connection)

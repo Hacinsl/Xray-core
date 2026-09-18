@@ -140,13 +140,13 @@ func (s *Server) GetUsersCount(context.Context) int64 {
 	return s.validator.GetCount()
 }
 
-// Network implements proxy.Inbound.Network().
-func (s *Server) Network() []net.Network {
-	return []net.Network{net.Network_TCP, net.Network_UNIX}
+// Delivery implements proxy.Inbound.Delivery().
+func (s *Server) Delivery() []net.Delivery {
+	return []net.Delivery{net.Delivery_Stream, net.Delivery_Unix}
 }
 
 // Process implements proxy.Inbound.Process().
-func (s *Server) Process(ctx context.Context, network net.Network, conn stat.Connection, dispatcher routing.Dispatcher) error {
+func (s *Server) Process(ctx context.Context, _ net.Delivery, conn stat.Connection, dispatcher routing.Dispatcher) error {
 	iConn := stat.TryUnwrapStatsConn(conn)
 
 	sessionPolicy := s.policyManager.ForLevel(0)

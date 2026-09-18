@@ -225,13 +225,13 @@ func (s *Server) GetUsersCount(context.Context) (count int64) {
 	return
 }
 
-// Network implements proxy.Inbound.Network.
-func (*Server) Network() []net.Network {
-	return []net.Network{}
+// Delivery implements proxy.Inbound.Delivery.
+func (*Server) Delivery() []net.Delivery {
+	return []net.Delivery{}
 }
 
 // Process implements proxy.Inbound.Process.
-func (s *Server) Process(ctx context.Context, network net.Network, conn stat.Connection, dispatcher routing.Dispatcher) error {
+func (s *Server) Process(ctx context.Context, _ net.Delivery, conn stat.Connection, dispatcher routing.Dispatcher) error {
 	return nil
 }
 

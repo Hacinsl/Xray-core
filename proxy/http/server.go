@@ -50,9 +50,9 @@ func (s *Server) policy() policy.Session {
 	return p
 }
 
-// Network implements proxy.Inbound.
-func (*Server) Network() []net.Network {
-	return []net.Network{net.Network_TCP, net.Network_UNIX}
+// Delivery implements proxy.Inbound.
+func (*Server) Delivery() []net.Delivery {
+	return []net.Delivery{net.Delivery_Stream, net.Delivery_Unix}
 }
 
 func isTimeout(err error) bool {
@@ -81,15 +81,15 @@ type readerOnly struct {
 	io.Reader
 }
 
-func (s *Server) Process(ctx context.Context, network net.Network, conn stat.Connection, dispatcher routing.Dispatcher) error {
-	return s.ProcessWithFirstbyte(ctx, network, conn, dispatcher)
+func (s *Server) Process(ctx context.Context, _ net.Delivery, conn stat.Connection, dispatcher routing.Dispatcher) error {
+	return s.ProcessWithFirstbyte(ctx, 0, conn, dispatcher)
 }
 
 // Firstbyte is for forwarded conn from SOCKS inbound
 // Because it needs first byte to choose protocol
 // We need to add it back
 // Other parts are the same as the process function
-func (s *Server) ProcessWithFirstbyte(ctx context.Context, network net.Network, conn stat.Connection, dispatcher routing.Dispatcher, firstbyte ...byte) error {
+func (s *Server) ProcessWithFirstbyte(ctx context.Context, _ net.Delivery, conn stat.Connection, dispatcher routing.Dispatcher, firstbyte ...byte) error {
 	inbound := session.InboundFromContext(ctx)
 	inbound.Name = "http"
 	inbound.CanSpliceCopy = 2

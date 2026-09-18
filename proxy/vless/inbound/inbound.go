@@ -262,13 +262,13 @@ func (h *Handler) GetUsersCount(context.Context) int64 {
 	return h.validator.GetCount()
 }
 
-// Network implements proxy.Inbound.Network().
-func (*Handler) Network() []net.Network {
-	return []net.Network{net.Network_TCP, net.Network_UNIX}
+// Delivery implements proxy.Inbound.Delivery().
+func (*Handler) Delivery() []net.Delivery {
+	return []net.Delivery{net.Delivery_Stream, net.Delivery_Unix}
 }
 
 // Process implements proxy.Inbound.Process().
-func (h *Handler) Process(ctx context.Context, network net.Network, connection stat.Connection, dispatch routing.Dispatcher) error {
+func (h *Handler) Process(ctx context.Context, _ net.Delivery, connection stat.Connection, dispatch routing.Dispatcher) error {
 	iConn := stat.TryUnwrapStatsConn(connection)
 
 	if h.decryption != nil {

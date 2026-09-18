@@ -60,11 +60,16 @@ const (
 
 // An Inbound processes inbound connections.
 type Inbound interface {
-	// Network returns a list of networks that this inbound supports. Connections with not-supported networks will not be passed into Process().
-	Network() []net.Network
+	// Delivery returns a list of delivery kinds that this inbound supports.
+	// Connections with not-supported delivery kinds will not be passed into Process().
+	//
+	// Note that this describes how connections are handed to Process() (stream, packet
+	// or unix), NOT the wire-level transport protocol. For example, hysteria runs over
+	// QUIC/UDP but returns Stream, because it hands QUIC streams over as connections.
+	Delivery() []net.Delivery
 
-	// Process processes a connection of given network. If necessary, the Inbound can dispatch the connection to an Outbound.
-	Process(context.Context, net.Network, stat.Connection, routing.Dispatcher) error
+	// Process processes a connection of given delivery kind. If necessary, the Inbound can dispatch the connection to an Outbound.
+	Process(context.Context, net.Delivery, stat.Connection, routing.Dispatcher) error
 }
 
 // An Outbound process outbound connections.

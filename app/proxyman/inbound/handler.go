@@ -43,7 +43,7 @@ func getStatCounter(v *core.Instance, tag string) (stats.Counter, stats.Counter)
 	return uplinkCounter, downlinkCounter
 }
 
-type AlwaysOnInboundHandler struct {
+type InboundHandler struct {
 	proxyConfig    interface{}
 	receiverConfig *proxyman.ReceiverConfig
 	proxy          proxy.Inbound
@@ -52,7 +52,7 @@ type AlwaysOnInboundHandler struct {
 	tag            string
 }
 
-func NewAlwaysOnInboundHandler(ctx context.Context, tag string, receiverConfig *proxyman.ReceiverConfig, proxyConfig interface{}) (*AlwaysOnInboundHandler, error) {
+func NewInboundHandler(ctx context.Context, tag string, receiverConfig *proxyman.ReceiverConfig, proxyConfig interface{}) (*InboundHandler, error) {
 	sniffingRequest, err := proxyman.BuildSniffingRequest(receiverConfig.SniffingSettings)
 	if err != nil {
 		return nil, err
@@ -82,7 +82,7 @@ func NewAlwaysOnInboundHandler(ctx context.Context, tag string, receiverConfig *
 		return nil, errors.New("not an inbound proxy.")
 	}
 
-	h := &AlwaysOnInboundHandler{
+	h := &InboundHandler{
 		receiverConfig: receiverConfig,
 		proxyConfig:    proxyConfig,
 		proxy:          p,
@@ -92,7 +92,7 @@ func NewAlwaysOnInboundHandler(ctx context.Context, tag string, receiverConfig *
 
 	uplinkCounter, downlinkCounter := getStatCounter(core.MustFromContext(ctx), tag)
 
-	nl := p.Network()
+	dl := p.Delivery()
 	pl := receiverConfig.PortList
 	address := receiverConfig.Listen.AsAddress()
 	if address == nil {
@@ -109,10 +109,10 @@ func NewAlwaysOnInboundHandler(ctx context.Context, tag string, receiverConfig *
 		mss.SocketSettings.ReceiveOriginalDestAddress = true
 	}
 	if pl == nil {
-		if net.HasNetwork(nl, net.Network_UNIX) {
+		if net.HasDelivery(dl, net.Delivery_Unix) {
 			errors.LogDebug(ctx, "creating unix domain socket worker on ", address)
 
-			worker := &dsWorker{
+			worker := &unixWorker{
 				address:         address,
 				proxy:           p,
 				stream:          mss,
@@ -129,10 +129,10 @@ func NewAlwaysOnInboundHandler(ctx context.Context, tag string, receiverConfig *
 	if pl != nil {
 		for _, pr := range pl.Range {
 			for port := pr.From; port <= pr.To; port++ {
-				if net.HasNetwork(nl, net.Network_TCP) {
+				if net.HasDelivery(dl, net.Delivery_Stream) {
 					errors.LogDebug(ctx, "creating stream worker on ", address, ":", port)
 
-					worker := &tcpWorker{
+					worker := &streamWorker{
 						address:         address,
 						port:            net.Port(port),
 						proxy:           p,
@@ -148,8 +148,8 @@ func NewAlwaysOnInboundHandler(ctx context.Context, tag string, receiverConfig *
 					h.workers = append(h.workers, worker)
 				}
 
-				if net.HasNetwork(nl, net.Network_UDP) {
-					worker := &udpWorker{
+				if net.HasDelivery(dl, net.Delivery_Packet) {
+					worker := &packetWorker{
 						tag:             tag,
 						proxy:           p,
 						address:         address,
@@ -171,7 +171,7 @@ func NewAlwaysOnInboundHandler(ctx context.Context, tag string, receiverConfig *
 }
 
 // Start implements common.Runnable.
-func (h *AlwaysOnInboundHandler) Start() error {
+func (h *InboundHandler) Start() error {
 	// for inbound without worker (TUN)
 	if run, ok := h.proxy.(common.Runnable); ok {
 		if err := run.Start(); err != nil {
@@ -187,7 +187,7 @@ func (h *AlwaysOnInboundHandler) Start() error {
 }
 
 // Close implements common.Closable.
-func (h *AlwaysOnInboundHandler) Close() error {
+func (h *InboundHandler) Close() error {
 	var errs []error
 	for _, worker := range h.workers {
 		errs = append(errs, worker.Close())
@@ -200,21 +200,21 @@ func (h *AlwaysOnInboundHandler) Close() error {
 	return nil
 }
 
-func (h *AlwaysOnInboundHandler) Tag() string {
+func (h *InboundHandler) Tag() string {
 	return h.tag
 }
 
-func (h *AlwaysOnInboundHandler) GetInbound() proxy.Inbound {
+func (h *InboundHandler) GetInbound() proxy.Inbound {
 	return h.proxy
 }
 
 // ReceiverSettings implements inbound.Handler.
-func (h *AlwaysOnInboundHandler) ReceiverSettings() *serial.TypedMessage {
+func (h *InboundHandler) ReceiverSettings() *serial.TypedMessage {
 	return serial.ToTypedMessage(h.receiverConfig)
 }
 
 // ProxySettings implements inbound.Handler.
-func (h *AlwaysOnInboundHandler) ProxySettings() *serial.TypedMessage {
+func (h *InboundHandler) ProxySettings() *serial.TypedMessage {
 	if v, ok := h.proxyConfig.(proto.Message); ok {
 		return serial.ToTypedMessage(v)
 	}

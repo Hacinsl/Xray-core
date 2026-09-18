@@ -32,24 +32,24 @@ func init() {
 }
 
 type Inbound struct {
-	networks []net.Network
-	service  shadowsocks.Service
-	email    string
-	level    int
+	deliveries []net.Delivery
+	service    shadowsocks.Service
+	email      string
+	level      int
 }
 
 func NewServer(ctx context.Context, config *ServerConfig) (*Inbound, error) {
-	networks := config.Network
-	if len(networks) == 0 {
-		networks = []net.Network{
-			net.Network_TCP,
-			net.Network_UDP,
+	deliveries := net.ToDeliveries(config.Network)
+	if len(deliveries) == 0 {
+		deliveries = []net.Delivery{
+			net.Delivery_Stream,
+			net.Delivery_Packet,
 		}
 	}
 	inbound := &Inbound{
-		networks: networks,
-		email:    config.Email,
-		level:    int(config.Level),
+		deliveries: deliveries,
+		email:      config.Email,
+		level:      int(config.Level),
 	}
 	if !C.Contains(shadowaead_2022.List, config.Method) {
 		return nil, errors.New("unsupported method ", config.Method)
@@ -62,11 +62,11 @@ func NewServer(ctx context.Context, config *ServerConfig) (*Inbound, error) {
 	return inbound, nil
 }
 
-func (i *Inbound) Network() []net.Network {
-	return i.networks
+func (i *Inbound) Delivery() []net.Delivery {
+	return i.deliveries
 }
 
-func (i *Inbound) Process(ctx context.Context, network net.Network, connection stat.Connection, dispatcher routing.Dispatcher) error {
+func (i *Inbound) Process(ctx context.Context, network net.Delivery, connection stat.Connection, dispatcher routing.Dispatcher) error {
 	inbound := session.InboundFromContext(ctx)
 	inbound.Name = "shadowsocks-2022"
 	inbound.CanSpliceCopy = 3
@@ -78,7 +78,7 @@ func (i *Inbound) Process(ctx context.Context, network net.Network, connection s
 
 	ctx = session.ContextWithDispatcher(ctx, dispatcher)
 
-	if network == net.Network_TCP {
+	if network == net.Delivery_Stream {
 		return singbridge.ReturnError(i.service.NewConnection(ctx, connection, metadata))
 	} else {
 		reader := buf.NewReader(connection)
