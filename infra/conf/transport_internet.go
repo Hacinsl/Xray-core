@@ -52,6 +52,8 @@ func (p TransportMethod) Build() (string, error) {
 		return "", errors.PrintRemovedFeatureError("QUIC transport (without web service, etc.)", "XHTTP stream-one H3")
 	case "hysteria":
 		return "hysteria", nil
+	case "xdrive":
+		return "xdrive", nil
 	default:
 		return "", errors.New("Config: unknown transport protocol: ", p)
 	}
