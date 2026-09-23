@@ -87,7 +87,7 @@ func ListenWS(ctx context.Context, address net.Address, port net.Port, streamSet
 	l := &Listener{
 		addConn: addConn,
 	}
-	wsSettings := streamSettings.ProtocolSettings.(*Config)
+	wsSettings := streamSettings.MethodSettings.(*Config)
 	l.config = wsSettings
 	if l.config != nil {
 		if streamSettings.SocketSettings == nil {
@@ -156,5 +156,5 @@ func (ln *Listener) Close() error {
 }
 
 func init() {
-	common.Must(internet.RegisterTransportListener(protocolName, ListenWS))
+	common.Must(internet.RegisterTransportListener(methodName, ListenWS))
 }

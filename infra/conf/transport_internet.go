@@ -21,6 +21,7 @@ var methodSettingsLoader = NewJSONConfigLoader(ConfigCreatorCache{
 	"websocket":   func() interface{} { return new(WebSocketConfig) },
 	"httpupgrade": func() interface{} { return new(HttpUpgradeConfig) },
 	"hysteria":    func() interface{} { return new(HysteriaConfig) },
+	"xdrive":      func() interface{} { return new(XDriveConfig) },
 }, "method", "settings")
 
 var securitySettingsLoader = NewJSONConfigLoader(ConfigCreatorCache{
@@ -55,74 +56,57 @@ func (p TransportMethod) Build() (string, error) {
 	case "xdrive":
 		return "xdrive", nil
 	default:
-		return "", errors.New("Config: unknown transport protocol: ", p)
+		return "", errors.New("Config: unknown transport method: ", p)
 	}
 }
 
-// 未来改成network+多态networksettings，以及security+多态securitysettings
+// 多态 method + methodSettings，以及 security + securitySettings
 type StreamConfig struct {
 	Address          *Address         `json:"address"`
 	Port             uint16           `json:"port"`
 	Method           *TransportMethod `json:"method"`
-	Network          *TransportMethod `json:"network"`
 	Security         string           `json:"security"`
 	MethodSettings   *json.RawMessage `json:"methodSettings"`
 	SecuritySettings *json.RawMessage `json:"securitySettings"`
 	FinalMask        *FinalMask       `json:"finalmask"`
-	// TLSSettings         *TLSConfig         `json:"tlsSettings"`
-	// REALITYSettings     *REALITYConfig     `json:"realitySettings"`
-	// RAWSettings         *TCPConfig         `json:"rawSettings"`
-	// TCPSettings         *TCPConfig         `json:"tcpSettings"`
-	// XHTTPSettings       *SplitHTTPConfig   `json:"xhttpSettings"`
-	// SplitHTTPSettings   *SplitHTTPConfig   `json:"splithttpSettings"`
-	// KCPSettings         *KCPConfig         `json:"kcpSettings"`
-	// GRPCSettings        *GRPCConfig        `json:"grpcSettings"`
-	// WSSettings          *WebSocketConfig   `json:"wsSettings"`
-	// HTTPUPGRADESettings *HttpUpgradeConfig `json:"httpupgradeSettings"`
-	// HysteriaSettings    *HysteriaConfig    `json:"hysteriaSettings"`
-	SocketSettings *SocketConfig `json:"sockopt"`
+	SocketSettings   *SocketConfig    `json:"sockopt"`
 }
 
 // Build implements Buildable.
 func (c *StreamConfig) Build() (*internet.StreamConfig, error) {
 	config := &internet.StreamConfig{
-		Port:         uint32(c.Port),
-		ProtocolName: "tcp",
+		Port:       uint32(c.Port),
+		MethodName: "tcp",
 	}
 	if c.Address != nil {
 		config.Address = c.Address.Build()
 	}
 	if c.Method != nil {
-		c.Network = c.Method
-	}
-	if c.Network != nil {
-		protocol, err := c.Network.Build()
+		method, err := c.Method.Build()
 		if err != nil {
 			return nil, err
 		}
-		config.ProtocolName = protocol
-	}
+		config.MethodName = method
 
-	if c.Security == "reality" && config.ProtocolName != "tcp" && config.ProtocolName != "splithttp" && config.ProtocolName != "grpc" {
-		return nil, errors.New("REALITY only supports RAW, XHTTP and gRPC for now.")
-	}
+		if c.Security == "reality" && method != "tcp" && method != "splithttp" && method != "grpc" {
+			return nil, errors.New("REALITY only supports RAW, XHTTP and gRPC for now.")
+		}
 
-	if c.Method != nil {
 		methodSettings := []byte("{}")
 		if c.MethodSettings != nil {
 			methodSettings = ([]byte)(*c.MethodSettings)
 		}
-		rawConfig, err := methodSettingsLoader.LoadWithID(methodSettings, string(*c.Method))
+		rawConfig, err := methodSettingsLoader.LoadWithID(methodSettings, method)
 		if err != nil {
-			return nil, errors.New("Failed to load method config for ", c.Method).Base(err)
+			return nil, errors.New("Failed to load method config for ", method).Base(err)
 		}
 		ts, err := rawConfig.(Buildable).Build()
 		if err != nil {
-			return nil, errors.New("Failed to build method config for ", c.Method).Base(err)
+			return nil, errors.New("Failed to build method config for ", method).Base(err)
 		}
 		config.TransportSettings = append(config.TransportSettings, &internet.TransportConfig{
-			ProtocolName: string(*c.Method),
-			Settings:     serial.ToTypedMessage(ts),
+			MethodName: method,
+			Settings:   serial.ToTypedMessage(ts),
 		})
 	}
 
@@ -143,117 +127,6 @@ func (c *StreamConfig) Build() (*internet.StreamConfig, error) {
 		config.SecuritySettings = append(config.SecuritySettings, tm)
 		config.SecurityType = tm.Type
 	}
-	// switch strings.ToLower(c.Security) {
-	// case "", "none":
-	// case "tls":
-	// 	if c.TLSSettings == nil {
-	// 		return nil, errors.New(`Empty "tlsSettings".`)
-	// 	}
-	// 	ts, err := c.TLSSettings.Build()
-	// 	if err != nil {
-	// 		return nil, errors.New("Failed to build TLS config.").Base(err)
-	// 	}
-	// 	tm := serial.ToTypedMessage(ts)
-	// 	config.SecuritySettings = append(config.SecuritySettings, tm)
-	// 	// 冗余的类型记录
-	// 	config.SecurityType = tm.Type
-	// case "reality":
-	// 	if config.ProtocolName != "tcp" && config.ProtocolName != "splithttp" && config.ProtocolName != "grpc" {
-	// 		return nil, errors.New("REALITY only supports RAW, XHTTP and gRPC for now.")
-	// 	}
-	// 	if c.REALITYSettings == nil {
-	// 		return nil, errors.New(`REALITY: Empty "realitySettings".`)
-	// 	}
-	// 	ts, err := c.REALITYSettings.Build()
-	// 	if err != nil {
-	// 		return nil, errors.New("Failed to build REALITY config.").Base(err)
-	// 	}
-	// 	tm := serial.ToTypedMessage(ts)
-	// 	config.SecuritySettings = append(config.SecuritySettings, tm)
-	// 	// 同上
-	// 	config.SecurityType = tm.Type
-	// case "xtls":
-	// 	return nil, errors.PrintRemovedFeatureError(`Legacy XTLS`, `xtls-rprx-vision with TLS or REALITY`)
-	// default:
-	// 	return nil, errors.New(`Unknown security "` + c.Security + `".`)
-	// }
-
-	// if c.RAWSettings != nil {
-	// 	c.TCPSettings = c.RAWSettings
-	// }
-	// if c.TCPSettings != nil {
-	// 	ts, err := c.TCPSettings.Build()
-	// 	if err != nil {
-	// 		return nil, errors.New("Failed to build RAW config.").Base(err)
-	// 	}
-	// 	config.TransportSettings = append(config.TransportSettings, &internet.TransportConfig{
-	// 		ProtocolName: "tcp",
-	// 		Settings:     serial.ToTypedMessage(ts),
-	// 	})
-	// }
-	// if c.XHTTPSettings != nil {
-	// 	c.SplitHTTPSettings = c.XHTTPSettings
-	// }
-	// if c.SplitHTTPSettings != nil {
-	// 	hs, err := c.SplitHTTPSettings.Build()
-	// 	if err != nil {
-	// 		return nil, errors.New("Failed to build XHTTP config.").Base(err)
-	// 	}
-	// 	config.TransportSettings = append(config.TransportSettings, &internet.TransportConfig{
-	// 		ProtocolName: "splithttp",
-	// 		Settings:     serial.ToTypedMessage(hs),
-	// 	})
-	// }
-	// if c.KCPSettings != nil {
-	// 	ts, err := c.KCPSettings.Build()
-	// 	if err != nil {
-	// 		return nil, errors.New("Failed to build mKCP config.").Base(err)
-	// 	}
-	// 	config.TransportSettings = append(config.TransportSettings, &internet.TransportConfig{
-	// 		ProtocolName: "mkcp",
-	// 		Settings:     serial.ToTypedMessage(ts),
-	// 	})
-	// }
-	// if c.GRPCSettings != nil {
-	// 	gs, err := c.GRPCSettings.Build()
-	// 	if err != nil {
-	// 		return nil, errors.New("Failed to build gRPC config.").Base(err)
-	// 	}
-	// 	config.TransportSettings = append(config.TransportSettings, &internet.TransportConfig{
-	// 		ProtocolName: "grpc",
-	// 		Settings:     serial.ToTypedMessage(gs),
-	// 	})
-	// }
-	// if c.WSSettings != nil {
-	// 	ts, err := c.WSSettings.Build()
-	// 	if err != nil {
-	// 		return nil, errors.New("Failed to build WebSocket config.").Base(err)
-	// 	}
-	// 	config.TransportSettings = append(config.TransportSettings, &internet.TransportConfig{
-	// 		ProtocolName: "websocket",
-	// 		Settings:     serial.ToTypedMessage(ts),
-	// 	})
-	// }
-	// if c.HTTPUPGRADESettings != nil {
-	// 	hs, err := c.HTTPUPGRADESettings.Build()
-	// 	if err != nil {
-	// 		return nil, errors.New("Failed to build HTTPUpgrade config.").Base(err)
-	// 	}
-	// 	config.TransportSettings = append(config.TransportSettings, &internet.TransportConfig{
-	// 		ProtocolName: "httpupgrade",
-	// 		Settings:     serial.ToTypedMessage(hs),
-	// 	})
-	// }
-	// if c.HysteriaSettings != nil {
-	// 	hs, err := c.HysteriaSettings.Build()
-	// 	if err != nil {
-	// 		return nil, errors.New("Failed to build Hysteria config.").Base(err)
-	// 	}
-	// 	config.TransportSettings = append(config.TransportSettings, &internet.TransportConfig{
-	// 		ProtocolName: "hysteria",
-	// 		Settings:     serial.ToTypedMessage(hs),
-	// 	})
-	// }
 	if c.SocketSettings != nil {
 		ss, err := c.SocketSettings.Build()
 		if err != nil {

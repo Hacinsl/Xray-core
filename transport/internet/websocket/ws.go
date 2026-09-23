@@ -5,4 +5,4 @@ WebSocket transport implements an HTTP(S) compliable, surveillance proof transpo
 */
 package websocket
 
-const protocolName = "websocket"
+const methodName = "websocket"

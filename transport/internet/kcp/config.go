@@ -26,7 +26,7 @@ func (c *Config) GetReceivingInFlightSize() uint32 {
 }
 
 func init() {
-	common.Must(internet.RegisterProtocolConfigCreator(ProtocolName, func() interface{} {
+	common.Must(internet.RegisterMethodConfigCreator(MethodName, func() interface{} {
 		return &Config{
 			Mtu:              1350,
 			Tti:              50,

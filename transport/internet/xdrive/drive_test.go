@@ -314,8 +314,8 @@ func cutQuoted(query, marker string) (string, bool) {
 
 func driveSettings() *internet.MemoryStreamConfig {
 	return &internet.MemoryStreamConfig{
-		ProtocolName: protocolName,
-		ProtocolSettings: &Config{
+		MethodName: methodName,
+		MethodSettings: &Config{
 			RemoteFolder:      "folder-id",
 			Service:           "Google Drive",
 			Secrets:           []string{"client", "secret", "refresh"},
@@ -330,7 +330,7 @@ func driveSettings() *internet.MemoryStreamConfig {
 func newDriveBackend(t *testing.T) *driveStorage {
 	t.Helper()
 
-	storage, err := newDriveStorage(driveSettings(), driveSettings().ProtocolSettings.(*Config))
+	storage, err := newDriveStorage(driveSettings(), driveSettings().MethodSettings.(*Config))
 	if err != nil {
 		t.Fatalf("newDriveStorage: %v", err)
 	}
@@ -670,7 +670,7 @@ func TestDriveFronting(t *testing.T) {
 		Network: net.Network_TCP,
 	}
 
-	storage, err := newDriveStorage(settings, settings.ProtocolSettings.(*Config))
+	storage, err := newDriveStorage(settings, settings.MethodSettings.(*Config))
 	if err != nil {
 		t.Fatalf("newDriveStorage: %v", err)
 	}

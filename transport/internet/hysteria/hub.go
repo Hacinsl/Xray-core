@@ -203,7 +203,7 @@ func Listen(ctx context.Context, address net.Address, port net.Port, streamSetti
 	}
 
 	validator := ValidatorFromContext(ctx)
-	config := streamSettings.ProtocolSettings.(*Config)
+	config := streamSettings.MethodSettings.(*Config)
 
 	if validator == nil && config.Auth == "" {
 		return nil, errors.New("validator is nil")
@@ -360,7 +360,7 @@ func Listen(ctx context.Context, address net.Address, port net.Port, streamSetti
 }
 
 func init() {
-	common.Must(internet.RegisterTransportListener(protocolName, Listen))
+	common.Must(internet.RegisterTransportListener(methodName, Listen))
 }
 
 const (

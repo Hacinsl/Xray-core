@@ -534,7 +534,7 @@ type KCPConfig struct {
 
 // Build implements Buildable.
 func (c *KCPConfig) Build() (proto.Message, error) {
-	config := common.Must2(internet.CreateTransportConfig(kcp.ProtocolName)).(*kcp.Config)
+	config := common.Must2(internet.CreateTransportConfig(kcp.MethodName)).(*kcp.Config)
 
 	if c.Mtu != nil {
 		config.Mtu = *c.Mtu

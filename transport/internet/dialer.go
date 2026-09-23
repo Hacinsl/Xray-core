@@ -36,11 +36,11 @@ type dialFunc func(ctx context.Context, dest net.Destination, streamSettings *Me
 var transportDialerCache = make(map[string]dialFunc)
 
 // RegisterTransportDialer registers a Dialer with given name.
-func RegisterTransportDialer(protocol string, dialer dialFunc) error {
-	if _, found := transportDialerCache[protocol]; found {
-		return errors.New(protocol, " dialer already registered").AtError()
+func RegisterTransportDialer(method string, dialer dialFunc) error {
+	if _, found := transportDialerCache[method]; found {
+		return errors.New(method, " dialer already registered").AtError()
 	}
-	transportDialerCache[protocol] = dialer
+	transportDialerCache[method] = dialer
 	return nil
 }
 
@@ -55,10 +55,10 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *MemoryStrea
 			streamSettings = s
 		}
 
-		protocol := streamSettings.ProtocolName
-		dialer := transportDialerCache[protocol]
+		method := streamSettings.MethodName
+		dialer := transportDialerCache[method]
 		if dialer == nil {
-			return nil, errors.New(protocol, " dialer not registered").AtError()
+			return nil, errors.New(method, " dialer not registered").AtError()
 		}
 		return dialer(ctx, dest, streamSettings)
 	}

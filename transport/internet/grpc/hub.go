@@ -52,7 +52,7 @@ func (l Listener) Addr() net.Addr {
 }
 
 func Listen(ctx context.Context, address net.Address, port net.Port, settings *internet.MemoryStreamConfig, handler internet.ConnHandler) (internet.Listener, error) {
-	grpcSettings := settings.ProtocolSettings.(*Config)
+	grpcSettings := settings.MethodSettings.(*Config)
 	var listener *Listener
 	if port == net.Port(0) { // unix
 		listener = &Listener{
@@ -135,5 +135,5 @@ func Listen(ctx context.Context, address net.Address, port net.Port, settings *i
 }
 
 func init() {
-	common.Must(internet.RegisterTransportListener(protocolName, Listen))
+	common.Must(internet.RegisterTransportListener(methodName, Listen))
 }

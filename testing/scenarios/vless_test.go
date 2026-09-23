@@ -149,7 +149,7 @@ func TestVlessTls(t *testing.T) {
 					PortList: &net.PortList{Range: []*net.PortRange{net.SinglePortRange(serverPort)}},
 					Listen:   net.NewIPOrDomain(net.LocalHostIP),
 					StreamSettings: &internet.StreamConfig{
-						ProtocolName: "tcp",
+						MethodName:   "tcp",
 						SecurityType: serial.GetMessageType(&tls.Config{}),
 						SecuritySettings: []*serial.TypedMessage{
 							serial.ToTypedMessage(&tls.Config{
@@ -214,11 +214,11 @@ func TestVlessTls(t *testing.T) {
 				}),
 				SenderSettings: serial.ToTypedMessage(&proxyman.SenderConfig{
 					StreamSettings: &internet.StreamConfig{
-						ProtocolName: "tcp",
+						MethodName: "tcp",
 						TransportSettings: []*internet.TransportConfig{
 							{
-								ProtocolName: "tcp",
-								Settings:     serial.ToTypedMessage(&transtcp.Config{}),
+								MethodName: "tcp",
+								Settings:   serial.ToTypedMessage(&transtcp.Config{}),
 							},
 						},
 						SecurityType: serial.GetMessageType(&tls.Config{}),
@@ -271,7 +271,7 @@ func TestVlessXtlsVision(t *testing.T) {
 					PortList: &net.PortList{Range: []*net.PortRange{net.SinglePortRange(serverPort)}},
 					Listen:   net.NewIPOrDomain(net.LocalHostIP),
 					StreamSettings: &internet.StreamConfig{
-						ProtocolName: "tcp",
+						MethodName:   "tcp",
 						SecurityType: serial.GetMessageType(&tls.Config{}),
 						SecuritySettings: []*serial.TypedMessage{
 							serial.ToTypedMessage(&tls.Config{
@@ -338,11 +338,11 @@ func TestVlessXtlsVision(t *testing.T) {
 				}),
 				SenderSettings: serial.ToTypedMessage(&proxyman.SenderConfig{
 					StreamSettings: &internet.StreamConfig{
-						ProtocolName: "tcp",
+						MethodName: "tcp",
 						TransportSettings: []*internet.TransportConfig{
 							{
-								ProtocolName: "tcp",
-								Settings:     serial.ToTypedMessage(&transtcp.Config{}),
+								MethodName: "tcp",
+								Settings:   serial.ToTypedMessage(&transtcp.Config{}),
 							},
 						},
 						SecurityType: serial.GetMessageType(&tls.Config{}),
@@ -398,7 +398,7 @@ func TestVlessXtlsVisionReality(t *testing.T) {
 					PortList: &net.PortList{Range: []*net.PortRange{net.SinglePortRange(serverPort)}},
 					Listen:   net.NewIPOrDomain(net.LocalHostIP),
 					StreamSettings: &internet.StreamConfig{
-						ProtocolName: "tcp",
+						MethodName:   "tcp",
 						SecurityType: serial.GetMessageType(&reality.Config{}),
 						SecuritySettings: []*serial.TypedMessage{
 							serial.ToTypedMessage(&reality.Config{
@@ -470,11 +470,11 @@ func TestVlessXtlsVisionReality(t *testing.T) {
 				}),
 				SenderSettings: serial.ToTypedMessage(&proxyman.SenderConfig{
 					StreamSettings: &internet.StreamConfig{
-						ProtocolName: "tcp",
+						MethodName: "tcp",
 						TransportSettings: []*internet.TransportConfig{
 							{
-								ProtocolName: "tcp",
-								Settings:     serial.ToTypedMessage(&transtcp.Config{}),
+								MethodName: "tcp",
+								Settings:   serial.ToTypedMessage(&transtcp.Config{}),
 							},
 						},
 						SecurityType: serial.GetMessageType(&reality.Config{}),
@@ -538,7 +538,7 @@ func TestVlessRealityFingerprints(t *testing.T) {
 						PortList: &net.PortList{Range: []*net.PortRange{net.SinglePortRange(serverPort)}},
 						Listen:   net.NewIPOrDomain(net.LocalHostIP),
 						StreamSettings: &internet.StreamConfig{
-							ProtocolName: "tcp",
+							MethodName:   "tcp",
 							SecurityType: serial.GetMessageType(&reality.Config{}),
 							SecuritySettings: []*serial.TypedMessage{
 								serial.ToTypedMessage(&reality.Config{
@@ -607,11 +607,11 @@ func TestVlessRealityFingerprints(t *testing.T) {
 					}),
 					SenderSettings: serial.ToTypedMessage(&proxyman.SenderConfig{
 						StreamSettings: &internet.StreamConfig{
-							ProtocolName: "tcp",
+							MethodName: "tcp",
 							TransportSettings: []*internet.TransportConfig{
 								{
-									ProtocolName: "tcp",
-									Settings:     serial.ToTypedMessage(&transtcp.Config{}),
+									MethodName: "tcp",
+									Settings:   serial.ToTypedMessage(&transtcp.Config{}),
 								},
 							},
 							SecurityType: serial.GetMessageType(&reality.Config{}),

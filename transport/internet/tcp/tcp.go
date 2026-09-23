@@ -1,3 +1,3 @@
 package tcp
 
-const protocolName = "tcp"
+const methodName = "tcp"

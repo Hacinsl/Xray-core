@@ -120,8 +120,8 @@ func templateSettings(store *fakeStore, auth map[string]interface{}, secrets []s
 	}
 	raw, _ := json.Marshal(tmpl)
 	return &internet.MemoryStreamConfig{
-		ProtocolName: protocolName,
-		ProtocolSettings: &Config{
+		MethodName: methodName,
+		MethodSettings: &Config{
 			RemoteFolder:      "folder",
 			Service:           "template",
 			Secrets:           secrets,
@@ -137,7 +137,7 @@ func templateSettings(store *fakeStore, auth map[string]interface{}, secrets []s
 func newTemplateBackend(t *testing.T, store *fakeStore, auth map[string]interface{}, secrets []string) *templateStorage {
 	t.Helper()
 	settings := templateSettings(store, auth, secrets)
-	storage, err := newTemplateStorage(settings, settings.ProtocolSettings.(*Config))
+	storage, err := newTemplateStorage(settings, settings.MethodSettings.(*Config))
 	if err != nil {
 		t.Fatalf("newTemplateStorage: %v", err)
 	}
@@ -282,7 +282,7 @@ func TestTemplateConcurrency(t *testing.T) {
 	settings := templateSettings(store, map[string]interface{}{"type": "none"}, nil)
 
 	var tmpl map[string]interface{}
-	cfg := settings.ProtocolSettings.(*Config)
+	cfg := settings.MethodSettings.(*Config)
 	if err := json.Unmarshal([]byte(cfg.Template), &tmpl); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}

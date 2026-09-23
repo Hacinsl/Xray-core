@@ -44,7 +44,7 @@ func (c *ConnRF) Read(b []byte) (int, error) {
 }
 
 func dialhttpUpgrade(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (net.Conn, error) {
-	transportConfiguration := streamSettings.ProtocolSettings.(*Config)
+	transportConfiguration := streamSettings.MethodSettings.(*Config)
 
 	var pconn net.Conn
 	var err error
@@ -136,5 +136,5 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 }
 
 func init() {
-	common.Must(internet.RegisterTransportDialer(protocolName, Dial))
+	common.Must(internet.RegisterTransportDialer(methodName, Dial))
 }

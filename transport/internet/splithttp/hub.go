@@ -444,7 +444,7 @@ func ListenXH(ctx context.Context, address net.Address, port net.Port, streamSet
 	l := &Listener{
 		addConn: addConn,
 	}
-	l.config = streamSettings.ProtocolSettings.(*Config)
+	l.config = streamSettings.MethodSettings.(*Config)
 	if l.config != nil {
 		if streamSettings.SocketSettings == nil {
 			streamSettings.SocketSettings = &internet.SocketConfig{}
@@ -603,7 +603,7 @@ func getTLSConfig(streamSettings *internet.MemoryStreamConfig) *gotls.Config {
 }
 
 func init() {
-	common.Must(internet.RegisterTransportListener(protocolName, ListenXH))
+	common.Must(internet.RegisterTransportListener(methodName, ListenXH))
 }
 
 type QListener struct {

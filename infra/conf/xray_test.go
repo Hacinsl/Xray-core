@@ -47,12 +47,12 @@ func TestXrayConfig(t *testing.T) {
 				},
 				"inbounds": [{
 					"streamSettings": {
-						"network": "ws",
-						"wsSettings": {
+						"method": "websocket",
+						"methodSettings": {
 							"host": "example.domain",
 							"path": ""
 						},
-						"tlsSettings": {
+						"securitySettings": {
 							"alpn": "h2"
 						},
 						"security": "tls"
@@ -120,10 +120,10 @@ func TestXrayConfig(t *testing.T) {
 								To:   500,
 							}}},
 							StreamSettings: &internet.StreamConfig{
-								ProtocolName: "websocket",
+								MethodName: "websocket",
 								TransportSettings: []*internet.TransportConfig{
 									{
-										ProtocolName: "websocket",
+										MethodName: "websocket",
 										Settings: serial.ToTypedMessage(&websocket.Config{
 											Host: "example.domain",
 										}),

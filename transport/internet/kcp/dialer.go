@@ -60,7 +60,7 @@ func DialKCP(ctx context.Context, dest net.Destination, streamSettings *internet
 		return nil, errors.New("failed to dial to dest: ", err).AtWarning().Base(err)
 	}
 
-	kcpSettings := streamSettings.ProtocolSettings.(*Config)
+	kcpSettings := streamSettings.MethodSettings.(*Config)
 
 	reader := &KCPPacketReader{}
 
@@ -83,5 +83,5 @@ func DialKCP(ctx context.Context, dest net.Destination, streamSettings *internet
 }
 
 func init() {
-	common.Must(internet.RegisterTransportDialer(ProtocolName, DialKCP))
+	common.Must(internet.RegisterTransportDialer(MethodName, DialKCP))
 }

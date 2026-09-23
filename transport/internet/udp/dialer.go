@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	common.Must(internet.RegisterTransportDialer(protocolName,
+	common.Must(internet.RegisterTransportDialer(methodName,
 		func(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (stat.Connection, error) {
 			if streamSettings != nil && streamSettings.FinalMask != nil {
 				return streamSettings.FinalMask.DialUDP(ctx, dest)

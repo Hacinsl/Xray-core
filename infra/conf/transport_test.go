@@ -2,6 +2,7 @@ package conf_test
 
 import (
 	"encoding/json"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -296,7 +297,7 @@ func TestXDriveStreamConfig(t *testing.T) {
 	config := new(StreamConfig)
 	if err := json.Unmarshal([]byte(`{
 		"method": "xdrive",
-		"xdriveSettings": {
+		"methodSettings": {
 			"remoteFolder": "/tmp/xdrive",
 			"service": "local"
 		}
@@ -308,10 +309,10 @@ func TestXDriveStreamConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Build: %v", err)
 	}
-	if built.ProtocolName != "xdrive" {
-		t.Fatalf("ProtocolName is %q, want %q", built.ProtocolName, "xdrive")
+	if built.MethodName != "xdrive" {
+		t.Fatalf("MethodName is %q, want %q", built.MethodName, "xdrive")
 	}
-	if len(built.TransportSettings) != 1 || built.TransportSettings[0].ProtocolName != "xdrive" {
+	if len(built.TransportSettings) != 1 || built.TransportSettings[0].MethodName != "xdrive" {
 		t.Fatalf("TransportSettings is %v, want a single xdrive entry", built.TransportSettings)
 	}
 }
@@ -330,7 +331,7 @@ func TestXDriveTemplateStreamConfig(t *testing.T) {
 	config := new(StreamConfig)
 	if err := json.Unmarshal([]byte(`{
 		"method": "xdrive",
-		"xdriveSettings": {
+		"methodSettings": {
 			"remoteFolder": "folder",
 			"service": "template",
 			"secrets": ["user", "pass"],
@@ -350,8 +351,8 @@ func TestXDriveTemplateStreamConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Build: %v", err)
 	}
-	if built.ProtocolName != "xdrive" {
-		t.Fatalf("ProtocolName is %q, want xdrive", built.ProtocolName)
+	if built.MethodName != "xdrive" {
+		t.Fatalf("MethodName is %q, want xdrive", built.MethodName)
 	}
 }
 
@@ -362,5 +363,62 @@ func TestXDriveTemplateNeedsTemplate(t *testing.T) {
 	}
 	if _, err := config.Build(); err == nil {
 		t.Fatal("Build accepted a template service without a template")
+	}
+}
+
+func TestTransportMethodAliases(t *testing.T) {
+	cases := []struct {
+		method   string
+		settings string
+		want     string
+	}{
+		{`"raw"`, `{}`, "tcp"},
+		{`"tcp"`, `{}`, "tcp"},
+		{`"xhttp"`, `{"path":"/probe"}`, "splithttp"},
+		{`"splithttp"`, `{"path":"/probe"}`, "splithttp"},
+		{`"kcp"`, `{"mtu":1400}`, "mkcp"},
+		{`"mkcp"`, `{"mtu":1400}`, "mkcp"},
+		{`"ws"`, `{"path":"/probe"}`, "websocket"},
+		{`"WS"`, `{"path":"/probe"}`, "websocket"},
+		{`"websocket"`, `{"path":"/probe"}`, "websocket"},
+		{`"grpc"`, `{}`, "grpc"},
+		{`"httpupgrade"`, `{}`, "httpupgrade"},
+		{`"hysteria"`, `{"version":2,"auth":"probe"}`, "hysteria"},
+		{`"xdrive"`, `{"remoteFolder":"/tmp/xdrive","service":"local"}`, "xdrive"},
+	}
+	for _, c := range cases {
+		raw := `{"method":` + c.method + `,"methodSettings":` + c.settings + `}`
+		config := new(StreamConfig)
+		if err := json.Unmarshal([]byte(raw), config); err != nil {
+			t.Fatalf("%s: Unmarshal: %v", raw, err)
+		}
+		built, err := config.Build()
+		if err != nil {
+			t.Fatalf("%s: Build: %v", raw, err)
+		}
+		if built.MethodName != c.want {
+			t.Fatalf("%s: StreamConfig.MethodName is %q, want %q", raw, built.MethodName, c.want)
+		}
+		if len(built.TransportSettings) != 1 {
+			t.Fatalf("%s: TransportSettings is %v, want a single entry", raw, built.TransportSettings)
+		}
+		if name := built.TransportSettings[0].GetUnifiedMethodName(); name != c.want {
+			t.Fatalf("%s: TransportSettings[0].MethodName is %q, want %q", raw, name, c.want)
+		}
+
+		inSettings, err := built.TransportSettings[0].GetTypedSettings()
+		if err != nil {
+			t.Fatalf("%s: GetTypedSettings: %v", raw, err)
+		}
+		effective, err := built.GetEffectiveTransportSettings()
+		if err != nil {
+			t.Fatalf("%s: GetEffectiveTransportSettings: %v", raw, err)
+		}
+		if !reflect.DeepEqual(inSettings, effective) {
+			t.Fatalf("%s: GetEffectiveTransportSettings did not hit TransportSettings (silent fallback)", raw)
+		}
+		if c.settings != `{}` && reflect.ValueOf(effective).Elem().IsZero() {
+			t.Fatalf("%s: transport settings were dropped: %+v", raw, effective)
+		}
 	}
 }

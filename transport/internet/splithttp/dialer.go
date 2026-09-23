@@ -49,7 +49,7 @@ func getHTTPClient(ctx context.Context, dest net.Destination, streamSettings *in
 	realityConfig := reality.ConfigFromStreamSettings(streamSettings)
 
 	if browser_dialer.HasBrowserDialer() && realityConfig == nil {
-		return &BrowserDialerClient{transportConfig: streamSettings.ProtocolSettings.(*Config)}, nil
+		return &BrowserDialerClient{transportConfig: streamSettings.MethodSettings.(*Config)}, nil
 	}
 
 	globalDialerAccess.Lock()
@@ -64,7 +64,7 @@ func getHTTPClient(ctx context.Context, dest net.Destination, streamSettings *in
 	xmuxManager, found := globalDialerMap[key]
 
 	if !found {
-		transportConfig := streamSettings.ProtocolSettings.(*Config)
+		transportConfig := streamSettings.MethodSettings.(*Config)
 		var xmuxConfig XmuxConfig
 		if transportConfig.Xmux != nil {
 			xmuxConfig = *transportConfig.Xmux
@@ -114,7 +114,7 @@ func createHTTPClient(dest net.Destination, streamSettings *internet.MemoryStrea
 		gotlsConfig = tlsConfig.GetTLSConfig(tls.WithDestination(dest))
 	}
 
-	transportConfig := streamSettings.ProtocolSettings.(*Config)
+	transportConfig := streamSettings.MethodSettings.(*Config)
 
 	dialContext := func(ctxInner context.Context) (net.Conn, error) {
 		var conn net.Conn
@@ -147,8 +147,8 @@ func createHTTPClient(dest net.Destination, streamSettings *internet.MemoryStrea
 	}
 
 	var keepAlivePeriod time.Duration
-	if streamSettings.ProtocolSettings.(*Config).Xmux != nil {
-		keepAlivePeriod = time.Duration(streamSettings.ProtocolSettings.(*Config).Xmux.HKeepAlivePeriod) * time.Second
+	if streamSettings.MethodSettings.(*Config).Xmux != nil {
+		keepAlivePeriod = time.Duration(streamSettings.MethodSettings.(*Config).Xmux.HKeepAlivePeriod) * time.Second
 	}
 
 	var transport http.RoundTripper
@@ -288,7 +288,7 @@ func createHTTPClient(dest net.Destination, streamSettings *internet.MemoryStrea
 }
 
 func init() {
-	common.Must(internet.RegisterTransportDialer(protocolName, Dial))
+	common.Must(internet.RegisterTransportDialer(methodName, Dial))
 }
 
 func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (stat.Connection, error) {
@@ -300,7 +300,7 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 		dest.Network = net.Network_UDP
 	}
 
-	transportConfiguration := streamSettings.ProtocolSettings.(*Config)
+	transportConfiguration := streamSettings.MethodSettings.(*Config)
 	var requestURL url.URL
 
 	if tlsConfig != nil || realityConfig != nil {
@@ -373,7 +373,7 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 		} else {
 			requestURL2.Scheme = "http"
 		}
-		config2 := memory2.ProtocolSettings.(*Config)
+		config2 := memory2.MethodSettings.(*Config)
 		requestURL2.Host = config2.Host
 		if requestURL2.Host == "" && tlsConfig2 != nil {
 			requestURL2.Host = tlsConfig2.ServerName

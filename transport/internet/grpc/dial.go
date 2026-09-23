@@ -35,7 +35,7 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 }
 
 func init() {
-	common.Must(internet.RegisterTransportDialer(protocolName, Dial))
+	common.Must(internet.RegisterTransportDialer(methodName, Dial))
 }
 
 type dialerConf struct {
@@ -49,7 +49,7 @@ var (
 )
 
 func dialgRPC(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (net.Conn, error) {
-	grpcSettings := streamSettings.ProtocolSettings.(*Config)
+	grpcSettings := streamSettings.MethodSettings.(*Config)
 
 	conn, err := getGrpcClient(ctx, dest, streamSettings)
 	if err != nil {
@@ -83,7 +83,7 @@ func getGrpcClient(ctx context.Context, dest net.Destination, streamSettings *in
 	}
 	tlsConfig := tls.ConfigFromStreamSettings(streamSettings)
 	realityConfig := reality.ConfigFromStreamSettings(streamSettings)
-	grpcSettings := streamSettings.ProtocolSettings.(*Config)
+	grpcSettings := streamSettings.MethodSettings.(*Config)
 
 	if client, found := globalDialerMap[dialerConf{dest, streamSettings}]; found && client.GetState() != connectivity.Shutdown {
 		return client, nil

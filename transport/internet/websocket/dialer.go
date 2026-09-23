@@ -21,7 +21,7 @@ import (
 func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (stat.Connection, error) {
 	errors.LogInfo(ctx, "creating connection to ", dest)
 	var conn net.Conn
-	if streamSettings.ProtocolSettings.(*Config).Ed > 0 {
+	if streamSettings.MethodSettings.(*Config).Ed > 0 {
 		ctx, cancel := context.WithCancel(ctx)
 		conn = &delayDialConn{
 			dialed:         make(chan bool, 1),
@@ -40,11 +40,11 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 }
 
 func init() {
-	common.Must(internet.RegisterTransportDialer(protocolName, Dial))
+	common.Must(internet.RegisterTransportDialer(methodName, Dial))
 }
 
 func dialWebSocket(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig, ed []byte) (net.Conn, error) {
-	wsSettings := streamSettings.ProtocolSettings.(*Config)
+	wsSettings := streamSettings.MethodSettings.(*Config)
 
 	dialer := &websocket.Dialer{
 		NetDial: func(network, addr string) (net.Conn, error) {
@@ -192,7 +192,7 @@ func (d *delayDialConn) Write(b []byte) (int, error) {
 	}
 	if d.Conn == nil {
 		ed := b
-		if len(ed) > int(d.streamSettings.ProtocolSettings.(*Config).Ed) {
+		if len(ed) > int(d.streamSettings.MethodSettings.(*Config).Ed) {
 			ed = nil
 		}
 		var err error

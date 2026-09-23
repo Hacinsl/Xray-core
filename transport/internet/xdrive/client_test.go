@@ -55,7 +55,7 @@ func sniForSettings(t *testing.T, serverName string) string {
 	addr := ln.Addr().(*net.TCPAddr)
 
 	settings := &internet.MemoryStreamConfig{
-		ProtocolName: protocolName,
+		MethodName: methodName,
 		Destination: &xnet.Destination{
 			Address: xnet.ParseAddress(addr.IP.String()),
 			Port:    xnet.Port(addr.Port),

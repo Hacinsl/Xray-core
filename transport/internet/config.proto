@@ -34,10 +34,10 @@ enum AddressPortStrategy {
 }
 
 message TransportConfig {
-  // Transport protocol name.
-  string protocol_name = 3;
+  // Transport method name.
+  string method_name = 3;
 
-  // Specific transport protocol settings.
+  // Specific transport method settings.
   xray.common.serial.TypedMessage settings = 2;
 }
 
@@ -45,8 +45,8 @@ message StreamConfig {
   xray.common.net.IPOrDomain address = 8;
   uint32 port = 9;
 
-  // Effective network.
-  string protocol_name = 5;
+  // Effective method.
+  string method_name = 5;
 
   repeated TransportConfig transport_settings = 2;
 

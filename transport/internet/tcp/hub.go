@@ -31,7 +31,7 @@ func ListenTCP(ctx context.Context, address net.Address, port net.Port, streamSe
 	l := &Listener{
 		addConn: handler,
 	}
-	tcpSettings := streamSettings.ProtocolSettings.(*Config)
+	tcpSettings := streamSettings.MethodSettings.(*Config)
 	l.config = tcpSettings
 	if l.config != nil {
 		if streamSettings.SocketSettings == nil {
@@ -130,5 +130,5 @@ func (v *Listener) Close() error {
 }
 
 func init() {
-	common.Must(internet.RegisterTransportListener(protocolName, ListenTCP))
+	common.Must(internet.RegisterTransportListener(methodName, ListenTCP))
 }

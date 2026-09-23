@@ -66,8 +66,8 @@ func liveYandexSettings(t *testing.T) (*internet.MemoryStreamConfig, string, fun
 	}
 	raw, _ := json.Marshal(tmpl)
 	settings := &internet.MemoryStreamConfig{
-		ProtocolName: protocolName,
-		ProtocolSettings: &Config{
+		MethodName: methodName,
+		MethodSettings: &Config{
 			RemoteFolder:      folder,
 			Service:           "template",
 			Secrets:           []string{user, pass},
@@ -88,7 +88,7 @@ func TestLiveYandexStorage(t *testing.T) {
 	settings, _, cleanup := liveYandexSettings(t)
 	defer cleanup()
 
-	storage, err := newTemplateStorage(settings, settings.ProtocolSettings.(*Config))
+	storage, err := newTemplateStorage(settings, settings.MethodSettings.(*Config))
 	if err != nil {
 		t.Fatalf("newTemplateStorage: %v", err)
 	}

@@ -245,11 +245,11 @@ func runVLESSRealityCase(t *testing.T, bin string, mode trafficMode, payloadSize
 					PortList: &xnet.PortList{Range: []*xnet.PortRange{xnet.SinglePortRange(serverPort)}},
 					Listen:   xnet.NewIPOrDomain(xnet.LocalHostIP),
 					StreamSettings: &internet.StreamConfig{
-						ProtocolName: "tcp",
+						MethodName: "tcp",
 						TransportSettings: []*internet.TransportConfig{
 							{
-								ProtocolName: "tcp",
-								Settings:     serial.ToTypedMessage(&transtcp.Config{}),
+								MethodName: "tcp",
+								Settings:   serial.ToTypedMessage(&transtcp.Config{}),
 							},
 						},
 						SecurityType: serial.GetMessageType(&reality.Config{}),
@@ -313,11 +313,11 @@ func runVLESSRealityCase(t *testing.T, bin string, mode trafficMode, payloadSize
 				}),
 				SenderSettings: serial.ToTypedMessage(&proxyman.SenderConfig{
 					StreamSettings: &internet.StreamConfig{
-						ProtocolName: "tcp",
+						MethodName: "tcp",
 						TransportSettings: []*internet.TransportConfig{
 							{
-								ProtocolName: "tcp",
-								Settings:     serial.ToTypedMessage(&transtcp.Config{}),
+								MethodName: "tcp",
+								Settings:   serial.ToTypedMessage(&transtcp.Config{}),
 							},
 						},
 						SecurityType: serial.GetMessageType(&reality.Config{}),
@@ -367,10 +367,10 @@ func runHysteria2Case(t *testing.T, bin string, mode trafficMode, payloadSize in
 					PortList: &xnet.PortList{Range: []*xnet.PortRange{xnet.SinglePortRange(serverPort)}},
 					Listen:   xnet.NewIPOrDomain(xnet.LocalHostIP),
 					StreamSettings: &internet.StreamConfig{
-						ProtocolName: "hysteria",
+						MethodName: "hysteria",
 						TransportSettings: []*internet.TransportConfig{
 							{
-								ProtocolName: "hysteria",
+								MethodName: "hysteria",
 								Settings: serial.ToTypedMessage(&hytransport.Config{
 									Auth:           auth,
 									UdpIdleTimeout: 60,
@@ -430,10 +430,10 @@ func runHysteria2Case(t *testing.T, bin string, mode trafficMode, payloadSize in
 				}),
 				SenderSettings: serial.ToTypedMessage(&proxyman.SenderConfig{
 					StreamSettings: &internet.StreamConfig{
-						ProtocolName: "hysteria",
+						MethodName: "hysteria",
 						TransportSettings: []*internet.TransportConfig{
 							{
-								ProtocolName: "hysteria",
+								MethodName: "hysteria",
 								Settings: serial.ToTypedMessage(&hytransport.Config{
 									Auth:           auth,
 									UdpIdleTimeout: 60,
@@ -490,9 +490,9 @@ func runVLesseEncCase(t *testing.T, bin string, mode trafficMode, payloadSize in
 					PortList: &xnet.PortList{Range: []*xnet.PortRange{xnet.SinglePortRange(serverPort)}},
 					Listen:   xnet.NewIPOrDomain(xnet.LocalHostIP),
 					StreamSettings: &internet.StreamConfig{
-						ProtocolName: "tcp",
+						MethodName: "tcp",
 						TransportSettings: []*internet.TransportConfig{
-							{ProtocolName: "tcp", Settings: serial.ToTypedMessage(&transtcp.Config{})},
+							{MethodName: "tcp", Settings: serial.ToTypedMessage(&transtcp.Config{})},
 						},
 						Tcpmasks: []*serial.TypedMessage{serial.ToTypedMessage(cloneConfig(mode.config))},
 					},
@@ -550,9 +550,9 @@ func runVLesseEncCase(t *testing.T, bin string, mode trafficMode, payloadSize in
 				}),
 				SenderSettings: serial.ToTypedMessage(&proxyman.SenderConfig{
 					StreamSettings: &internet.StreamConfig{
-						ProtocolName: "tcp",
+						MethodName: "tcp",
 						TransportSettings: []*internet.TransportConfig{
-							{ProtocolName: "tcp", Settings: serial.ToTypedMessage(&transtcp.Config{})},
+							{MethodName: "tcp", Settings: serial.ToTypedMessage(&transtcp.Config{})},
 						},
 						Tcpmasks: []*serial.TypedMessage{serial.ToTypedMessage(cloneConfig(mode.config))},
 					},
@@ -594,9 +594,9 @@ func runVLESSXHTTPCase(t *testing.T, bin string, mode trafficMode, payloadSize i
 					PortList: &xnet.PortList{Range: []*xnet.PortRange{xnet.SinglePortRange(serverPort)}},
 					Listen:   xnet.NewIPOrDomain(xnet.LocalHostIP),
 					StreamSettings: &internet.StreamConfig{
-						ProtocolName: "splithttp",
+						MethodName: "splithttp",
 						TransportSettings: []*internet.TransportConfig{
-							{ProtocolName: "splithttp", Settings: serial.ToTypedMessage(xhttpConfig)},
+							{MethodName: "splithttp", Settings: serial.ToTypedMessage(xhttpConfig)},
 						},
 						Tcpmasks: []*serial.TypedMessage{serial.ToTypedMessage(cloneConfig(mode.config))},
 					},
@@ -648,9 +648,9 @@ func runVLESSXHTTPCase(t *testing.T, bin string, mode trafficMode, payloadSize i
 				}),
 				SenderSettings: serial.ToTypedMessage(&proxyman.SenderConfig{
 					StreamSettings: &internet.StreamConfig{
-						ProtocolName: "splithttp",
+						MethodName: "splithttp",
 						TransportSettings: []*internet.TransportConfig{
-							{ProtocolName: "splithttp", Settings: serial.ToTypedMessage(xhttpConfig)},
+							{MethodName: "splithttp", Settings: serial.ToTypedMessage(xhttpConfig)},
 						},
 						Tcpmasks: []*serial.TypedMessage{serial.ToTypedMessage(cloneConfig(mode.config))},
 					},

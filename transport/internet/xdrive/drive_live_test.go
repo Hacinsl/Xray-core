@@ -139,8 +139,8 @@ func TestLiveDriveStorage(t *testing.T) {
 func TestLiveDriveTransport(t *testing.T) {
 	config := liveDriveConfig(t)
 	streamSettings := &internet.MemoryStreamConfig{
-		ProtocolName:     protocolName,
-		ProtocolSettings: config,
+		MethodName:     methodName,
+		MethodSettings: config,
 	}
 
 	client, server, cleanup := pairWith(t, streamSettings)

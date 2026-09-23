@@ -1,3 +1,3 @@
 package grpc
 
-const protocolName = "grpc"
+const methodName = "grpc"

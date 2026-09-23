@@ -25,9 +25,9 @@ var strategy = [11][3]byte{
 	{2, 6, 4}, //   ForceIPv6v4 force,      6,      4
 }
 
-func RegisterProtocolConfigCreator(name string, creator ConfigCreator) error {
+func RegisterMethodConfigCreator(name string, creator ConfigCreator) error {
 	if _, found := globalTransportConfigCreatorCache[name]; found {
-		return errors.New("protocol ", name, " is already registered").AtError()
+		return errors.New("method ", name, " is already registered").AtError()
 	}
 	globalTransportConfigCreatorCache[name] = creator
 	return nil
@@ -38,7 +38,7 @@ func RegisterProtocolConfigCreator(name string, creator ConfigCreator) error {
 func CreateTransportConfig(name string) (interface{}, error) {
 	creator, ok := globalTransportConfigCreatorCache[name]
 	if !ok {
-		return nil, errors.New("unknown transport protocol: ", name)
+		return nil, errors.New("unknown transport method: ", name)
 	}
 	return creator(), nil
 }
@@ -47,33 +47,33 @@ func (c *TransportConfig) GetTypedSettings() (interface{}, error) {
 	return c.Settings.GetInstance()
 }
 
-func (c *TransportConfig) GetUnifiedProtocolName() string {
-	return c.ProtocolName
+func (c *TransportConfig) GetUnifiedMethodName() string {
+	return c.MethodName
 }
 
-func (c *StreamConfig) GetEffectiveProtocol() string {
-	if c == nil || len(c.ProtocolName) == 0 {
+func (c *StreamConfig) GetEffectiveMethod() string {
+	if c == nil || len(c.MethodName) == 0 {
 		return "tcp"
 	}
 
-	return c.ProtocolName
+	return c.MethodName
 }
 
 func (c *StreamConfig) GetEffectiveTransportSettings() (interface{}, error) {
-	protocol := c.GetEffectiveProtocol()
-	return c.GetTransportSettingsFor(protocol)
+	method := c.GetEffectiveMethod()
+	return c.GetTransportSettingsFor(method)
 }
 
-func (c *StreamConfig) GetTransportSettingsFor(protocol string) (interface{}, error) {
+func (c *StreamConfig) GetTransportSettingsFor(method string) (interface{}, error) {
 	if c != nil {
 		for _, settings := range c.TransportSettings {
-			if settings.GetUnifiedProtocolName() == protocol {
+			if settings.GetUnifiedMethodName() == method {
 				return settings.GetTypedSettings()
 			}
 		}
 	}
 
-	return CreateTransportConfig(protocol)
+	return CreateTransportConfig(method)
 }
 
 func (c *StreamConfig) GetEffectiveSecuritySettings() (interface{}, error) {

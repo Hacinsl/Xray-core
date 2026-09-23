@@ -33,7 +33,7 @@ type Listener struct {
 }
 
 func NewListener(ctx context.Context, address net.Address, port net.Port, streamSettings *internet.MemoryStreamConfig, addConn internet.ConnHandler) (*Listener, error) {
-	kcpSettings := streamSettings.ProtocolSettings.(*Config)
+	kcpSettings := streamSettings.MethodSettings.(*Config)
 
 	l := &Listener{
 		reader:   &KCPPacketReader{},
@@ -174,5 +174,5 @@ func ListenKCP(ctx context.Context, address net.Address, port net.Port, streamSe
 }
 
 func init() {
-	common.Must(internet.RegisterTransportListener(ProtocolName, ListenKCP))
+	common.Must(internet.RegisterTransportListener(MethodName, ListenKCP))
 }

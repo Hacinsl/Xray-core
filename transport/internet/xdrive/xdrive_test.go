@@ -20,8 +20,8 @@ const testPatience = 30 * time.Second
 
 func settings(folder string) *internet.MemoryStreamConfig {
 	return &internet.MemoryStreamConfig{
-		ProtocolName: protocolName,
-		ProtocolSettings: &Config{
+		MethodName: methodName,
+		MethodSettings: &Config{
 			RemoteFolder:      folder,
 			Service:           "local",
 			FlushIntervalMs:   5,

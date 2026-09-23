@@ -1,3 +1,3 @@
 package httpupgrade
 
-const protocolName = "httpupgrade"
+const methodName = "httpupgrade"

@@ -19,8 +19,8 @@ import (
 
 func TestDialAndListen(t *testing.T) {
 	listerner, err := NewListener(context.Background(), net.LocalHostIP, net.Port(0), &internet.MemoryStreamConfig{
-		ProtocolName: "mkcp",
-		ProtocolSettings: &Config{
+		MethodName: "mkcp",
+		MethodSettings: &Config{
 			Mtu:              1350,
 			Tti:              50,
 			UplinkCapacity:   5,
@@ -53,8 +53,8 @@ func TestDialAndListen(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		errg.Go(func() error {
 			clientConn, err := DialKCP(context.Background(), net.UDPDestination(net.LocalHostIP, port), &internet.MemoryStreamConfig{
-				ProtocolName: "mkcp",
-				ProtocolSettings: &Config{
+				MethodName: "mkcp",
+				MethodSettings: &Config{
 					Mtu:              1350,
 					Tti:              50,
 					UplinkCapacity:   5,

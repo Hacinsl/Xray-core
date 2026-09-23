@@ -264,7 +264,7 @@ func TestTLSOverKCP(t *testing.T) {
 					PortList: &net.PortList{Range: []*net.PortRange{net.SinglePortRange(serverPort)}},
 					Listen:   net.NewIPOrDomain(net.LocalHostIP),
 					StreamSettings: &internet.StreamConfig{
-						ProtocolName: "mkcp",
+						MethodName:   "mkcp",
 						SecurityType: serial.GetMessageType(&tls.Config{}),
 						SecuritySettings: []*serial.TypedMessage{
 							serial.ToTypedMessage(&tls.Config{
@@ -323,7 +323,7 @@ func TestTLSOverKCP(t *testing.T) {
 				}),
 				SenderSettings: serial.ToTypedMessage(&proxyman.SenderConfig{
 					StreamSettings: &internet.StreamConfig{
-						ProtocolName: "mkcp",
+						MethodName:   "mkcp",
 						SecurityType: serial.GetMessageType(&tls.Config{}),
 						SecuritySettings: []*serial.TypedMessage{
 							serial.ToTypedMessage(&tls.Config{
@@ -364,7 +364,7 @@ func TestTLSOverWebSocket(t *testing.T) {
 					PortList: &net.PortList{Range: []*net.PortRange{net.SinglePortRange(serverPort)}},
 					Listen:   net.NewIPOrDomain(net.LocalHostIP),
 					StreamSettings: &internet.StreamConfig{
-						ProtocolName: "websocket",
+						MethodName:   "websocket",
 						SecurityType: serial.GetMessageType(&tls.Config{}),
 						SecuritySettings: []*serial.TypedMessage{
 							serial.ToTypedMessage(&tls.Config{
@@ -423,11 +423,11 @@ func TestTLSOverWebSocket(t *testing.T) {
 				}),
 				SenderSettings: serial.ToTypedMessage(&proxyman.SenderConfig{
 					StreamSettings: &internet.StreamConfig{
-						ProtocolName: "websocket",
+						MethodName: "websocket",
 						TransportSettings: []*internet.TransportConfig{
 							{
-								ProtocolName: "websocket",
-								Settings:     serial.ToTypedMessage(&websocket.Config{}),
+								MethodName: "websocket",
+								Settings:   serial.ToTypedMessage(&websocket.Config{}),
 							},
 						},
 						SecurityType: serial.GetMessageType(&tls.Config{}),
@@ -474,11 +474,11 @@ func TestGRPC(t *testing.T) {
 					PortList: &net.PortList{Range: []*net.PortRange{net.SinglePortRange(serverPort)}},
 					Listen:   net.NewIPOrDomain(net.LocalHostIP),
 					StreamSettings: &internet.StreamConfig{
-						ProtocolName: "grpc",
+						MethodName: "grpc",
 						TransportSettings: []*internet.TransportConfig{
 							{
-								ProtocolName: "grpc",
-								Settings:     serial.ToTypedMessage(&grpc.Config{ServiceName: "🍉"}),
+								MethodName: "grpc",
+								Settings:   serial.ToTypedMessage(&grpc.Config{ServiceName: "🍉"}),
 							},
 						},
 						SecurityType: serial.GetMessageType(&tls.Config{}),
@@ -539,11 +539,11 @@ func TestGRPC(t *testing.T) {
 				}),
 				SenderSettings: serial.ToTypedMessage(&proxyman.SenderConfig{
 					StreamSettings: &internet.StreamConfig{
-						ProtocolName: "grpc",
+						MethodName: "grpc",
 						TransportSettings: []*internet.TransportConfig{
 							{
-								ProtocolName: "grpc",
-								Settings:     serial.ToTypedMessage(&grpc.Config{ServiceName: "🍉"}),
+								MethodName: "grpc",
+								Settings:   serial.ToTypedMessage(&grpc.Config{ServiceName: "🍉"}),
 							},
 						},
 						SecurityType: serial.GetMessageType(&tls.Config{}),
@@ -590,11 +590,11 @@ func TestGRPCMultiMode(t *testing.T) {
 					PortList: &net.PortList{Range: []*net.PortRange{net.SinglePortRange(serverPort)}},
 					Listen:   net.NewIPOrDomain(net.LocalHostIP),
 					StreamSettings: &internet.StreamConfig{
-						ProtocolName: "grpc",
+						MethodName: "grpc",
 						TransportSettings: []*internet.TransportConfig{
 							{
-								ProtocolName: "grpc",
-								Settings:     serial.ToTypedMessage(&grpc.Config{ServiceName: "🍉"}),
+								MethodName: "grpc",
+								Settings:   serial.ToTypedMessage(&grpc.Config{ServiceName: "🍉"}),
 							},
 						},
 						SecurityType: serial.GetMessageType(&tls.Config{}),
@@ -655,11 +655,11 @@ func TestGRPCMultiMode(t *testing.T) {
 				}),
 				SenderSettings: serial.ToTypedMessage(&proxyman.SenderConfig{
 					StreamSettings: &internet.StreamConfig{
-						ProtocolName: "grpc",
+						MethodName: "grpc",
 						TransportSettings: []*internet.TransportConfig{
 							{
-								ProtocolName: "grpc",
-								Settings:     serial.ToTypedMessage(&grpc.Config{ServiceName: "🍉", MultiMode: true}),
+								MethodName: "grpc",
+								Settings:   serial.ToTypedMessage(&grpc.Config{ServiceName: "🍉", MultiMode: true}),
 							},
 						},
 						SecurityType: serial.GetMessageType(&tls.Config{}),

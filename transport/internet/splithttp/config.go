@@ -483,7 +483,7 @@ func (m *XmuxConfig) GetNormalizedHMaxReusableSecs() *RangeConfig {
 }
 
 func init() {
-	common.Must(internet.RegisterProtocolConfigCreator(protocolName, func() interface{} {
+	common.Must(internet.RegisterMethodConfigCreator(methodName, func() interface{} {
 		return new(Config)
 	}))
 }

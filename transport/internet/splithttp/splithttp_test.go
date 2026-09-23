@@ -27,8 +27,8 @@ import (
 func Test_ListenXHAndDial(t *testing.T) {
 	listenPort := tcp.PickPort()
 	listen, err := ListenXH(context.Background(), net.LocalHostIP, listenPort, &internet.MemoryStreamConfig{
-		ProtocolName: "splithttp",
-		ProtocolSettings: &Config{
+		MethodName: "splithttp",
+		MethodSettings: &Config{
 			Path: "/sh",
 		},
 	}, func(conn stat.Connection) {
@@ -48,8 +48,8 @@ func Test_ListenXHAndDial(t *testing.T) {
 	common.Must(err)
 	ctx := context.Background()
 	streamSettings := &internet.MemoryStreamConfig{
-		ProtocolName:     "splithttp",
-		ProtocolSettings: &Config{Path: "sh"},
+		MethodName:     "splithttp",
+		MethodSettings: &Config{Path: "sh"},
 	}
 	conn, err := Dial(ctx, net.TCPDestination(net.DomainAddress("localhost"), listenPort), streamSettings)
 
@@ -84,8 +84,8 @@ func Test_ListenXHAndDial(t *testing.T) {
 func TestDialWithRemoteAddr(t *testing.T) {
 	listenPort := tcp.PickPort()
 	listen, err := ListenXH(context.Background(), net.LocalHostIP, listenPort, &internet.MemoryStreamConfig{
-		ProtocolName: "splithttp",
-		ProtocolSettings: &Config{
+		MethodName: "splithttp",
+		MethodSettings: &Config{
 			Path: "sh",
 		},
 		SocketSettings: &internet.SocketConfig{
@@ -109,8 +109,8 @@ func TestDialWithRemoteAddr(t *testing.T) {
 	common.Must(err)
 
 	conn, err := Dial(context.Background(), net.TCPDestination(net.DomainAddress("localhost"), listenPort), &internet.MemoryStreamConfig{
-		ProtocolName:     "splithttp",
-		ProtocolSettings: &Config{Path: "sh", Headers: map[string]string{"X-Forwarded-For": "1.1.1.1"}},
+		MethodName:     "splithttp",
+		MethodSettings: &Config{Path: "sh", Headers: map[string]string{"X-Forwarded-For": "1.1.1.1"}},
 	})
 
 	common.Must(err)
@@ -138,8 +138,8 @@ func Test_ListenXHAndDial_TLS(t *testing.T) {
 	ct, ctHash := cert.MustGenerate(nil, cert.CommonName("localhost"))
 
 	streamSettings := &internet.MemoryStreamConfig{
-		ProtocolName: "splithttp",
-		ProtocolSettings: &Config{
+		MethodName: "splithttp",
+		MethodSettings: &Config{
 			Path: "shs",
 		},
 		SecurityType: "tls",
@@ -191,8 +191,8 @@ func Test_ListenXHAndDial_H2C(t *testing.T) {
 	listenPort := tcp.PickPort()
 
 	streamSettings := &internet.MemoryStreamConfig{
-		ProtocolName: "splithttp",
-		ProtocolSettings: &Config{
+		MethodName: "splithttp",
+		MethodSettings: &Config{
 			Path: "shs",
 		},
 	}
@@ -236,8 +236,8 @@ func Test_ListenXHAndDial_QUIC(t *testing.T) {
 	ct, ctHash := cert.MustGenerate(nil, cert.CommonName("localhost"))
 
 	streamSettings := &internet.MemoryStreamConfig{
-		ProtocolName: "splithttp",
-		ProtocolSettings: &Config{
+		MethodName: "splithttp",
+		MethodSettings: &Config{
 			Path: "shs",
 		},
 		SecurityType: "tls",
@@ -313,8 +313,8 @@ func Test_ListenXHAndDial_Unix(t *testing.T) {
 	tempSocket := tempDir + "/server.sock"
 
 	listen, err := ListenXH(context.Background(), net.DomainAddress(tempSocket), 0, &internet.MemoryStreamConfig{
-		ProtocolName: "splithttp",
-		ProtocolSettings: &Config{
+		MethodName: "splithttp",
+		MethodSettings: &Config{
 			Path: "/sh",
 		},
 	}, func(conn stat.Connection) {
@@ -334,8 +334,8 @@ func Test_ListenXHAndDial_Unix(t *testing.T) {
 	common.Must(err)
 	ctx := context.Background()
 	streamSettings := &internet.MemoryStreamConfig{
-		ProtocolName: "splithttp",
-		ProtocolSettings: &Config{
+		MethodName: "splithttp",
+		MethodSettings: &Config{
 			Host: "example.com",
 			Path: "sh",
 		},
@@ -373,8 +373,8 @@ func Test_ListenXHAndDial_Unix(t *testing.T) {
 func Test_queryString(t *testing.T) {
 	listenPort := tcp.PickPort()
 	listen, err := ListenXH(context.Background(), net.LocalHostIP, listenPort, &internet.MemoryStreamConfig{
-		ProtocolName: "splithttp",
-		ProtocolSettings: &Config{
+		MethodName: "splithttp",
+		MethodSettings: &Config{
 			// this querystring does not have any effect, but sometimes people blindly copy it from websocket config. make sure the outbound doesn't break
 			Path: "/sh?ed=2048",
 		},
@@ -395,8 +395,8 @@ func Test_queryString(t *testing.T) {
 	common.Must(err)
 	ctx := context.Background()
 	streamSettings := &internet.MemoryStreamConfig{
-		ProtocolName:     "splithttp",
-		ProtocolSettings: &Config{Path: "sh?ed=2048"},
+		MethodName:     "splithttp",
+		MethodSettings: &Config{Path: "sh?ed=2048"},
 	}
 	conn, err := Dial(ctx, net.TCPDestination(net.DomainAddress("localhost"), listenPort), streamSettings)
 
@@ -419,8 +419,8 @@ func Test_queryString(t *testing.T) {
 func Test_maxUpload(t *testing.T) {
 	listenPort := tcp.PickPort()
 	streamSettings := &internet.MemoryStreamConfig{
-		ProtocolName: "splithttp",
-		ProtocolSettings: &Config{
+		MethodName: "splithttp",
+		MethodSettings: &Config{
 			Path: "/sh",
 			ScMaxEachPostBytes: &RangeConfig{
 				From: 10000,

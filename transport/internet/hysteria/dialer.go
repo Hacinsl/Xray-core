@@ -316,7 +316,7 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 		if c == nil {
 			c = &client{
 				dest:         dest,
-				config:       streamSettings.ProtocolSettings.(*Config),
+				config:       streamSettings.MethodSettings.(*Config),
 				tlsConfig:    tlsConfig.GetTLSConfig(tls.WithDestination(dest)),
 				socketConfig: streamSettings.SocketSettings,
 				finalMask:    streamSettings.FinalMask,
@@ -334,5 +334,5 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 }
 
 func init() {
-	common.Must(internet.RegisterTransportDialer(protocolName, Dial))
+	common.Must(internet.RegisterTransportDialer(methodName, Dial))
 }

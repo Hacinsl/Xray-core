@@ -1,3 +1,3 @@
 package udp
 
-const protocolName = "udp"
+const methodName = "udp"

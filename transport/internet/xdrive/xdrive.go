@@ -18,19 +18,19 @@ import (
 )
 
 const (
-	protocolName = "xdrive"
-	sessionsDir  = "sessions"
-	streamsDir   = "streams"
-	uplinkDir    = "c2s"
-	downlinkDir  = "s2c"
+	methodName  = "xdrive"
+	sessionsDir = "sessions"
+	streamsDir  = "streams"
+	uplinkDir   = "c2s"
+	downlinkDir = "s2c"
 )
 
 func init() {
-	common.Must(internet.RegisterProtocolConfigCreator(protocolName, func() interface{} {
+	common.Must(internet.RegisterMethodConfigCreator(methodName, func() interface{} {
 		return new(Config)
 	}))
-	common.Must(internet.RegisterTransportDialer(protocolName, Dial))
-	common.Must(internet.RegisterTransportListener(protocolName, Serve))
+	common.Must(internet.RegisterTransportDialer(methodName, Dial))
+	common.Must(internet.RegisterTransportListener(methodName, Serve))
 }
 
 func newSessionID() (string, error) {
@@ -70,7 +70,7 @@ func downlinkPrefix(session string) string {
 }
 
 func streamConfig(streamSettings *internet.MemoryStreamConfig) (*Config, error) {
-	config, ok := streamSettings.ProtocolSettings.(*Config)
+	config, ok := streamSettings.MethodSettings.(*Config)
 	if !ok || config == nil {
 		return nil, errors.New("invalid protocol settings")
 	}

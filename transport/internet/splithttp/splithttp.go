@@ -1,3 +1,3 @@
 package splithttp
 
-const protocolName = "splithttp"
+const methodName = "splithttp"

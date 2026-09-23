@@ -446,7 +446,7 @@ func TestVMessKCP(t *testing.T) {
 					PortList: &net.PortList{Range: []*net.PortRange{net.SinglePortRange(serverPort)}},
 					Listen:   net.NewIPOrDomain(net.LocalHostIP),
 					StreamSettings: &internet.StreamConfig{
-						ProtocolName: "mkcp",
+						MethodName: "mkcp",
 					},
 				}),
 				ProxySettings: serial.ToTypedMessage(&inbound.Config{
@@ -508,7 +508,7 @@ func TestVMessKCP(t *testing.T) {
 				}),
 				SenderSettings: serial.ToTypedMessage(&proxyman.SenderConfig{
 					StreamSettings: &internet.StreamConfig{
-						ProtocolName: "mkcp",
+						MethodName: "mkcp",
 					},
 				}),
 			},
@@ -551,7 +551,7 @@ func TestVMessKCPLarge(t *testing.T) {
 					PortList: &net.PortList{Range: []*net.PortRange{net.SinglePortRange(serverPort)}},
 					Listen:   net.NewIPOrDomain(net.LocalHostIP),
 					StreamSettings: &internet.StreamConfig{
-						ProtocolName: "mkcp",
+						MethodName: "mkcp",
 					},
 				}),
 				ProxySettings: serial.ToTypedMessage(&inbound.Config{
@@ -613,7 +613,7 @@ func TestVMessKCPLarge(t *testing.T) {
 				}),
 				SenderSettings: serial.ToTypedMessage(&proxyman.SenderConfig{
 					StreamSettings: &internet.StreamConfig{
-						ProtocolName: "mkcp",
+						MethodName: "mkcp",
 					},
 				}),
 			},

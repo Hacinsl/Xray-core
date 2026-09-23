@@ -10,11 +10,11 @@ import (
 
 var transportListenerCache = make(map[string]ListenFunc)
 
-func RegisterTransportListener(protocol string, listener ListenFunc) error {
-	if _, found := transportListenerCache[protocol]; found {
-		return errors.New(protocol, " listener already registered.").AtError()
+func RegisterTransportListener(method string, listener ListenFunc) error {
+	if _, found := transportListenerCache[method]; found {
+		return errors.New(method, " listener already registered.").AtError()
 	}
-	transportListenerCache[protocol] = listener
+	transportListenerCache[method] = listener
 	return nil
 }
 
@@ -37,10 +37,10 @@ func ListenUnix(ctx context.Context, address net.Address, settings *MemoryStream
 		settings = s
 	}
 
-	protocol := settings.ProtocolName
-	listenFunc := transportListenerCache[protocol]
+	method := settings.MethodName
+	listenFunc := transportListenerCache[method]
 	if listenFunc == nil {
-		return nil, errors.New(protocol, " unix listener not registered.").AtError()
+		return nil, errors.New(method, " unix listener not registered.").AtError()
 	}
 	listener, err := listenFunc(ctx, address, net.Port(0), settings, handler)
 	if err != nil {
@@ -69,10 +69,10 @@ func ListenTCP(ctx context.Context, address net.Address, port net.Port, settings
 		return nil, errors.New("port 0 is not allowed for listening on TCP")
 	}
 
-	protocol := settings.ProtocolName
-	listenFunc := transportListenerCache[protocol]
+	method := settings.MethodName
+	listenFunc := transportListenerCache[method]
 	if listenFunc == nil {
-		return nil, errors.New(protocol, " listener not registered.").AtError()
+		return nil, errors.New(method, " listener not registered.").AtError()
 	}
 	listener, err := listenFunc(ctx, address, port, settings, handler)
 	if err != nil {

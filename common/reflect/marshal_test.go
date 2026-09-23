@@ -206,9 +206,9 @@ func getConfig() string {
       },
       "tag": "XHTTP_IN",
       "streamSettings": {
-        "network": "xhttp",
+        "method": "xhttp",
 		"security": "tls",
-        "xhttpSettings": {
+        "methodSettings": {
           "host": "bing.com",
           "path": "/xhttp_client_upload",
           "mode": "auto",

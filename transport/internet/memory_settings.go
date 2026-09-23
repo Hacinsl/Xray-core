@@ -13,8 +13,8 @@ import (
 // MemoryStreamConfig is a parsed form of StreamConfig. It is used to reduce the number of Protobuf parses.
 type MemoryStreamConfig struct {
 	Destination      *net.Destination
-	ProtocolName     string
-	ProtocolSettings interface{}
+	MethodName       string
+	MethodSettings   interface{}
 	SecurityType     string
 	SecuritySettings interface{}
 	FinalMask        *finalmask.FinalMask
@@ -31,8 +31,8 @@ func ToMemoryStreamConfig(s *StreamConfig) (*MemoryStreamConfig, error) {
 	}
 
 	mss := &MemoryStreamConfig{
-		ProtocolName:     s.GetEffectiveProtocol(),
-		ProtocolSettings: ets,
+		MethodName:     s.GetEffectiveMethod(),
+		MethodSettings: ets,
 	}
 
 	if s != nil {

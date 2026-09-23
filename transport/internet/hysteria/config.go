@@ -81,10 +81,10 @@ const (
 	StatusInactive
 )
 
-const protocolName = "hysteria"
+const methodName = "hysteria"
 
 func init() {
-	common.Must(internet.RegisterProtocolConfigCreator(protocolName, func() interface{} {
+	common.Must(internet.RegisterMethodConfigCreator(methodName, func() interface{} {
 		return &Config{
 			UdpIdleTimeout: 60,
 		}

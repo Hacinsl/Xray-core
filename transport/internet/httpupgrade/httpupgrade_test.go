@@ -19,8 +19,8 @@ import (
 func Test_listenHTTPUpgradeAndDial(t *testing.T) {
 	listenPort := tcp.PickPort()
 	listen, err := ListenHTTPUpgrade(context.Background(), net.LocalHostIP, listenPort, &internet.MemoryStreamConfig{
-		ProtocolName: "httpupgrade",
-		ProtocolSettings: &Config{
+		MethodName: "httpupgrade",
+		MethodSettings: &Config{
 			Path: "httpupgrade",
 		},
 	}, func(conn stat.Connection) {
@@ -41,8 +41,8 @@ func Test_listenHTTPUpgradeAndDial(t *testing.T) {
 
 	ctx := context.Background()
 	streamSettings := &internet.MemoryStreamConfig{
-		ProtocolName:     "httpupgrade",
-		ProtocolSettings: &Config{Path: "httpupgrade"},
+		MethodName:     "httpupgrade",
+		MethodSettings: &Config{Path: "httpupgrade"},
 	}
 	conn, err := Dial(ctx, net.TCPDestination(net.DomainAddress("localhost"), listenPort), streamSettings)
 
@@ -75,8 +75,8 @@ func Test_listenHTTPUpgradeAndDial(t *testing.T) {
 func Test_listenHTTPUpgradeAndDialWithHeaders(t *testing.T) {
 	listenPort := tcp.PickPort()
 	listen, err := ListenHTTPUpgrade(context.Background(), net.LocalHostIP, listenPort, &internet.MemoryStreamConfig{
-		ProtocolName: "httpupgrade",
-		ProtocolSettings: &Config{
+		MethodName: "httpupgrade",
+		MethodSettings: &Config{
 			Path: "httpupgrade",
 			Header: map[string]string{
 				"User-Agent": "Mozilla",
@@ -100,8 +100,8 @@ func Test_listenHTTPUpgradeAndDialWithHeaders(t *testing.T) {
 
 	ctx := context.Background()
 	streamSettings := &internet.MemoryStreamConfig{
-		ProtocolName:     "httpupgrade",
-		ProtocolSettings: &Config{Path: "httpupgrade"},
+		MethodName:     "httpupgrade",
+		MethodSettings: &Config{Path: "httpupgrade"},
 	}
 	conn, err := Dial(ctx, net.TCPDestination(net.DomainAddress("localhost"), listenPort), streamSettings)
 
@@ -134,8 +134,8 @@ func Test_listenHTTPUpgradeAndDialWithHeaders(t *testing.T) {
 func TestDialWithRemoteAddr(t *testing.T) {
 	listenPort := tcp.PickPort()
 	listen, err := ListenHTTPUpgrade(context.Background(), net.LocalHostIP, listenPort, &internet.MemoryStreamConfig{
-		ProtocolName: "httpupgrade",
-		ProtocolSettings: &Config{
+		MethodName: "httpupgrade",
+		MethodSettings: &Config{
 			Path: "httpupgrade",
 		},
 		SocketSettings: &internet.SocketConfig{
@@ -159,8 +159,8 @@ func TestDialWithRemoteAddr(t *testing.T) {
 	common.Must(err)
 
 	conn, err := Dial(context.Background(), net.TCPDestination(net.DomainAddress("localhost"), listenPort), &internet.MemoryStreamConfig{
-		ProtocolName:     "httpupgrade",
-		ProtocolSettings: &Config{Path: "httpupgrade", Header: map[string]string{"X-Forwarded-For": "1.1.1.1"}},
+		MethodName:     "httpupgrade",
+		MethodSettings: &Config{Path: "httpupgrade", Header: map[string]string{"X-Forwarded-For": "1.1.1.1"}},
 	})
 
 	common.Must(err)
@@ -188,8 +188,8 @@ func Test_listenHTTPUpgradeAndDial_TLS(t *testing.T) {
 	ct, ctHash := cert.MustGenerate(nil, cert.CommonName("localhost"))
 
 	streamSettings := &internet.MemoryStreamConfig{
-		ProtocolName: "httpupgrade",
-		ProtocolSettings: &Config{
+		MethodName: "httpupgrade",
+		MethodSettings: &Config{
 			Path: "httpupgrades",
 		},
 		SecurityType: "tls",

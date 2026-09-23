@@ -33,7 +33,7 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Client, error) {
 	p := v.GetFeature(policy.ManagerType()).(policy.Manager)
 
 	streamSettings := session.StreamSettingsFromContext(ctx).(*internet.MemoryStreamConfig)
-	if _, ok := streamSettings.ProtocolSettings.(*hysteria.Config); !ok {
+	if _, ok := streamSettings.MethodSettings.(*hysteria.Config); !ok {
 		return nil, errors.New("not hysteria transport")
 	}
 	if config.Server == nil {
