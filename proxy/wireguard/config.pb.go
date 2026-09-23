@@ -22,61 +22,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type DomainStrategy int32
-
-const (
-	DomainStrategy_FORCE_IP   DomainStrategy = 0
-	DomainStrategy_FORCE_IP4  DomainStrategy = 1
-	DomainStrategy_FORCE_IP6  DomainStrategy = 2
-	DomainStrategy_FORCE_IP46 DomainStrategy = 3
-	DomainStrategy_FORCE_IP64 DomainStrategy = 4
-)
-
-// Enum value maps for DomainStrategy.
-var (
-	DomainStrategy_name = map[int32]string{
-		0: "FORCE_IP",
-		1: "FORCE_IP4",
-		2: "FORCE_IP6",
-		3: "FORCE_IP46",
-		4: "FORCE_IP64",
-	}
-	DomainStrategy_value = map[string]int32{
-		"FORCE_IP":   0,
-		"FORCE_IP4":  1,
-		"FORCE_IP6":  2,
-		"FORCE_IP46": 3,
-		"FORCE_IP64": 4,
-	}
-)
-
-func (x DomainStrategy) Enum() *DomainStrategy {
-	p := new(DomainStrategy)
-	*p = x
-	return p
-}
-
-func (x DomainStrategy) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (DomainStrategy) Descriptor() protoreflect.EnumDescriptor {
-	return file_proxy_wireguard_config_proto_enumTypes[0].Descriptor()
-}
-
-func (DomainStrategy) Type() protoreflect.EnumType {
-	return &file_proxy_wireguard_config_proto_enumTypes[0]
-}
-
-func (x DomainStrategy) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use DomainStrategy.Descriptor instead.
-func (DomainStrategy) EnumDescriptor() ([]byte, []int) {
-	return file_proxy_wireguard_config_proto_rawDescGZIP(), []int{0}
-}
-
 type PeerConfig struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	PublicKey     string                 `protobuf:"bytes,1,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
@@ -153,18 +98,19 @@ func (x *PeerConfig) GetAllowedIps() []string {
 	return nil
 }
 
-type OutboundConfig struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	SecretKey      string                 `protobuf:"bytes,1,opt,name=secret_key,json=secretKey,proto3" json:"secret_key,omitempty"`
-	Address        []string               `protobuf:"bytes,2,rep,name=address,proto3" json:"address,omitempty"`
-	Peers          []*PeerConfig          `protobuf:"bytes,3,rep,name=peers,proto3" json:"peers,omitempty"`
-	Mtu            int32                  `protobuf:"varint,4,opt,name=mtu,proto3" json:"mtu,omitempty"`
-	Reserved       []byte                 `protobuf:"bytes,6,opt,name=reserved,proto3" json:"reserved,omitempty"`
-	DomainStrategy DomainStrategy         `protobuf:"varint,7,opt,name=domain_strategy,json=domainStrategy,proto3,enum=xray.proxy.wireguard.DomainStrategy" json:"domain_strategy,omitempty"`
-	NoKernelTun    bool                   `protobuf:"varint,9,opt,name=no_kernel_tun,json=noKernelTun,proto3" json:"no_kernel_tun,omitempty"`
-	DNS            []string               `protobuf:"bytes,10,rep,name=DNS,proto3" json:"DNS,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+type DeviceConfig struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SecretKey     string                 `protobuf:"bytes,1,opt,name=secret_key,json=secretKey,proto3" json:"secret_key,omitempty"`
+	Endpoint      []string               `protobuf:"bytes,2,rep,name=endpoint,proto3" json:"endpoint,omitempty"`
+	Peers         []*PeerConfig          `protobuf:"bytes,3,rep,name=peers,proto3" json:"peers,omitempty"`
+	Users         []*protocol.User       `protobuf:"bytes,5,rep,name=users,proto3" json:"users,omitempty"`
+	Mtu           int32                  `protobuf:"varint,4,opt,name=mtu,proto3" json:"mtu,omitempty"`
+	Reserved      []byte                 `protobuf:"bytes,6,opt,name=reserved,proto3" json:"reserved,omitempty"`
+	IsClient      bool                   `protobuf:"varint,8,opt,name=is_client,json=isClient,proto3" json:"is_client,omitempty"`
+	NoKernelTun   bool                   `protobuf:"varint,9,opt,name=no_kernel_tun,json=noKernelTun,proto3" json:"no_kernel_tun,omitempty"`
+	DNS           []string               `protobuf:"bytes,10,rep,name=DNS,proto3" json:"DNS,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *OutboundConfig) Reset() {
@@ -230,13 +176,6 @@ func (x *OutboundConfig) GetReserved() []byte {
 		return x.Reserved
 	}
 	return nil
-}
-
-func (x *OutboundConfig) GetDomainStrategy() DomainStrategy {
-	if x != nil {
-		return x.DomainStrategy
-	}
-	return DomainStrategy_FORCE_IP
 }
 
 func (x *OutboundConfig) GetNoKernelTun() bool {
@@ -336,31 +275,17 @@ const file_proxy_wireguard_config_proto_rawDesc = "" +
 	"keep_alive\x18\x04 \x01(\tR\tkeepAlive\x12\x1f\n" +
 	"\vallowed_ips\x18\x05 \x03(\tR\n" +
 	"allowedIps\"\xb4\x02\n" +
-	"\x0eOutboundConfig\x12\x1d\n" +
+	"\fDeviceConfig\x12\x1d\n" +
 	"\n" +
 	"secret_key\x18\x01 \x01(\tR\tsecretKey\x12\x18\n" +
 	"\aaddress\x18\x02 \x03(\tR\aaddress\x126\n" +
 	"\x05peers\x18\x03 \x03(\v2 .xray.proxy.wireguard.PeerConfigR\x05peers\x12\x10\n" +
 	"\x03mtu\x18\x04 \x01(\x05R\x03mtu\x12\x1a\n" +
-	"\breserved\x18\x06 \x01(\fR\breserved\x12M\n" +
-	"\x0fdomain_strategy\x18\a \x01(\x0e2$.xray.proxy.wireguard.DomainStrategyR\x0edomainStrategy\x12\"\n" +
+	"\breserved\x18\x06 \x01(\fR\breserved\x12\x1b\n" +
+	"\tis_client\x18\b \x01(\bR\bisClient\x12\"\n" +
 	"\rno_kernel_tun\x18\t \x01(\bR\vnoKernelTun\x12\x10\n" +
 	"\x03DNS\x18\n" +
-	" \x03(\tR\x03DNS\"\x8c\x01\n" +
-	"\rInboundConfig\x12\x1d\n" +
-	"\n" +
-	"secret_key\x18\x01 \x01(\tR\tsecretKey\x12\x18\n" +
-	"\aaddress\x18\x02 \x03(\tR\aaddress\x120\n" +
-	"\x05users\x18\x05 \x03(\v2\x1a.xray.common.protocol.UserR\x05users\x12\x10\n" +
-	"\x03mtu\x18\x04 \x01(\x05R\x03mtu*\\\n" +
-	"\x0eDomainStrategy\x12\f\n" +
-	"\bFORCE_IP\x10\x00\x12\r\n" +
-	"\tFORCE_IP4\x10\x01\x12\r\n" +
-	"\tFORCE_IP6\x10\x02\x12\x0e\n" +
-	"\n" +
-	"FORCE_IP46\x10\x03\x12\x0e\n" +
-	"\n" +
-	"FORCE_IP64\x10\x04B^\n" +
+	" \x03(\tR\x03DNSB^\n" +
 	"\x18com.xray.proxy.wireguardP\x01Z)github.com/xtls/xray-core/proxy/wireguard\xaa\x02\x14Xray.Proxy.WireGuardb\x06proto3"
 
 var (
@@ -375,24 +300,20 @@ func file_proxy_wireguard_config_proto_rawDescGZIP() []byte {
 	return file_proxy_wireguard_config_proto_rawDescData
 }
 
-var file_proxy_wireguard_config_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_proxy_wireguard_config_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_proxy_wireguard_config_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_proxy_wireguard_config_proto_goTypes = []any{
-	(DomainStrategy)(0),    // 0: xray.proxy.wireguard.DomainStrategy
-	(*PeerConfig)(nil),     // 1: xray.proxy.wireguard.PeerConfig
-	(*OutboundConfig)(nil), // 2: xray.proxy.wireguard.OutboundConfig
-	(*InboundConfig)(nil),  // 3: xray.proxy.wireguard.InboundConfig
-	(*protocol.User)(nil),  // 4: xray.common.protocol.User
+	(*PeerConfig)(nil),    // 0: xray.proxy.wireguard.PeerConfig
+	(*DeviceConfig)(nil),  // 1: xray.proxy.wireguard.DeviceConfig
+	(*protocol.User)(nil), // 2: xray.common.protocol.User
 }
 var file_proxy_wireguard_config_proto_depIdxs = []int32{
-	1, // 0: xray.proxy.wireguard.OutboundConfig.peers:type_name -> xray.proxy.wireguard.PeerConfig
-	0, // 1: xray.proxy.wireguard.OutboundConfig.domain_strategy:type_name -> xray.proxy.wireguard.DomainStrategy
-	4, // 2: xray.proxy.wireguard.InboundConfig.users:type_name -> xray.common.protocol.User
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	0, // 0: xray.proxy.wireguard.DeviceConfig.peers:type_name -> xray.proxy.wireguard.PeerConfig
+	2, // 1: xray.proxy.wireguard.DeviceConfig.users:type_name -> xray.common.protocol.User
+	2, // [2:2] is the sub-list for method output_type
+	2, // [2:2] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_proxy_wireguard_config_proto_init() }
@@ -405,14 +326,13 @@ func file_proxy_wireguard_config_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proxy_wireguard_config_proto_rawDesc), len(file_proxy_wireguard_config_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   3,
+			NumEnums:      0,
+			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_proxy_wireguard_config_proto_goTypes,
 		DependencyIndexes: file_proxy_wireguard_config_proto_depIdxs,
-		EnumInfos:         file_proxy_wireguard_config_proto_enumTypes,
 		MessageInfos:      file_proxy_wireguard_config_proto_msgTypes,
 	}.Build()
 	File_proxy_wireguard_config_proto = out.File

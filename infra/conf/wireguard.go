@@ -69,7 +69,6 @@ type WireGuardOutboundConfig struct {
 	Peers          []*WireGuardPeerConfig `json:"peers"`
 	MTU            int32                  `json:"mtu"`
 	Reserved       []byte                 `json:"reserved"`
-	DomainStrategy string                 `json:"domainStrategy"`
 	NoKernelTun    bool                   `json:"noKernelTun"`
 	DNS            []string               `json:"remoteDNS"`
 }
@@ -159,21 +158,6 @@ func (c *WireGuardOutboundConfig) Build() (proto.Message, error) {
 		return nil, errors.New(`"reserved" should be empty or 3 bytes`)
 	}
 	config.Reserved = c.Reserved
-
-	switch strings.ToLower(c.DomainStrategy) {
-	case "forceip", "":
-		config.DomainStrategy = wireguard.DomainStrategy_FORCE_IP
-	case "forceipv4":
-		config.DomainStrategy = wireguard.DomainStrategy_FORCE_IP4
-	case "forceipv6":
-		config.DomainStrategy = wireguard.DomainStrategy_FORCE_IP6
-	case "forceipv4v6":
-		config.DomainStrategy = wireguard.DomainStrategy_FORCE_IP46
-	case "forceipv6v4":
-		config.DomainStrategy = wireguard.DomainStrategy_FORCE_IP64
-	default:
-		return nil, errors.New("unsupported domain strategy: ", c.DomainStrategy)
-	}
 
 	config.NoKernelTun = c.NoKernelTun
 	config.DNS = c.DNS
