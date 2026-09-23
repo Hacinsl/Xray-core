@@ -98,12 +98,11 @@ func (x *PeerConfig) GetAllowedIps() []string {
 	return nil
 }
 
-type DeviceConfig struct {
+type OutboundConfig struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	SecretKey     string                 `protobuf:"bytes,1,opt,name=secret_key,json=secretKey,proto3" json:"secret_key,omitempty"`
-	Endpoint      []string               `protobuf:"bytes,2,rep,name=endpoint,proto3" json:"endpoint,omitempty"`
+	Address       []string               `protobuf:"bytes,2,rep,name=address,proto3" json:"address,omitempty"`
 	Peers         []*PeerConfig          `protobuf:"bytes,3,rep,name=peers,proto3" json:"peers,omitempty"`
-	Users         []*protocol.User       `protobuf:"bytes,5,rep,name=users,proto3" json:"users,omitempty"`
 	Mtu           int32                  `protobuf:"varint,4,opt,name=mtu,proto3" json:"mtu,omitempty"`
 	Reserved      []byte                 `protobuf:"bytes,6,opt,name=reserved,proto3" json:"reserved,omitempty"`
 	IsClient      bool                   `protobuf:"varint,8,opt,name=is_client,json=isClient,proto3" json:"is_client,omitempty"`
@@ -176,6 +175,13 @@ func (x *OutboundConfig) GetReserved() []byte {
 		return x.Reserved
 	}
 	return nil
+}
+
+func (x *OutboundConfig) GetIsClient() bool {
+	if x != nil {
+		return x.IsClient
+	}
+	return false
 }
 
 func (x *OutboundConfig) GetNoKernelTun() bool {
@@ -274,8 +280,8 @@ const file_proxy_wireguard_config_proto_rawDesc = "" +
 	"\n" +
 	"keep_alive\x18\x04 \x01(\tR\tkeepAlive\x12\x1f\n" +
 	"\vallowed_ips\x18\x05 \x03(\tR\n" +
-	"allowedIps\"\xb4\x02\n" +
-	"\fDeviceConfig\x12\x1d\n" +
+	"allowedIps\"\x82\x02\n" +
+	"\x0eOutboundConfig\x12\x1d\n" +
 	"\n" +
 	"secret_key\x18\x01 \x01(\tR\tsecretKey\x12\x18\n" +
 	"\aaddress\x18\x02 \x03(\tR\aaddress\x126\n" +
@@ -285,7 +291,13 @@ const file_proxy_wireguard_config_proto_rawDesc = "" +
 	"\tis_client\x18\b \x01(\bR\bisClient\x12\"\n" +
 	"\rno_kernel_tun\x18\t \x01(\bR\vnoKernelTun\x12\x10\n" +
 	"\x03DNS\x18\n" +
-	" \x03(\tR\x03DNSB^\n" +
+	" \x03(\tR\x03DNS\"\x8c\x01\n" +
+	"\rInboundConfig\x12\x1d\n" +
+	"\n" +
+	"secret_key\x18\x01 \x01(\tR\tsecretKey\x12\x18\n" +
+	"\aaddress\x18\x02 \x03(\tR\aaddress\x120\n" +
+	"\x05users\x18\x05 \x03(\v2\x1a.xray.common.protocol.UserR\x05users\x12\x10\n" +
+	"\x03mtu\x18\x04 \x01(\x05R\x03mtuB^\n" +
 	"\x18com.xray.proxy.wireguardP\x01Z)github.com/xtls/xray-core/proxy/wireguard\xaa\x02\x14Xray.Proxy.WireGuardb\x06proto3"
 
 var (
@@ -300,15 +312,16 @@ func file_proxy_wireguard_config_proto_rawDescGZIP() []byte {
 	return file_proxy_wireguard_config_proto_rawDescData
 }
 
-var file_proxy_wireguard_config_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_proxy_wireguard_config_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_proxy_wireguard_config_proto_goTypes = []any{
-	(*PeerConfig)(nil),    // 0: xray.proxy.wireguard.PeerConfig
-	(*DeviceConfig)(nil),  // 1: xray.proxy.wireguard.DeviceConfig
-	(*protocol.User)(nil), // 2: xray.common.protocol.User
+	(*PeerConfig)(nil),     // 0: xray.proxy.wireguard.PeerConfig
+	(*OutboundConfig)(nil), // 1: xray.proxy.wireguard.OutboundConfig
+	(*InboundConfig)(nil),  // 2: xray.proxy.wireguard.InboundConfig
+	(*protocol.User)(nil),  // 3: xray.common.protocol.User
 }
 var file_proxy_wireguard_config_proto_depIdxs = []int32{
-	0, // 0: xray.proxy.wireguard.DeviceConfig.peers:type_name -> xray.proxy.wireguard.PeerConfig
-	2, // 1: xray.proxy.wireguard.DeviceConfig.users:type_name -> xray.common.protocol.User
+	0, // 0: xray.proxy.wireguard.OutboundConfig.peers:type_name -> xray.proxy.wireguard.PeerConfig
+	3, // 1: xray.proxy.wireguard.InboundConfig.users:type_name -> xray.common.protocol.User
 	2, // [2:2] is the sub-list for method output_type
 	2, // [2:2] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
@@ -327,7 +340,7 @@ func file_proxy_wireguard_config_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proxy_wireguard_config_proto_rawDesc), len(file_proxy_wireguard_config_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
