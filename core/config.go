@@ -125,7 +125,7 @@ func LoadConfig(formatName string, input interface{}) (*Config, error) {
 				f = formatName
 			}
 			if f == "" {
-				return nil, errors.New("Failed to get format of ", file).AtWarning()
+				return nil, errors.New("Failed to get format of ", file)
 			}
 			if f == "protobuf" {
 				return ProtobufLoader(v)
@@ -156,7 +156,7 @@ func LoadConfig(formatName string, input interface{}) (*Config, error) {
 		})
 	}
 
-	return nil, errors.New("Unable to load config").AtWarning()
+	return nil, errors.New("Unable to load config")
 }
 
 func loadProtobufConfig(data []byte) (*Config, error) {
@@ -171,7 +171,7 @@ func ProtobufLoader(input interface{}) (*Config, error) {
 	switch v := input.(type) {
 	case cmdarg.Arg:
 		if len(v) != 1 {
-			return nil, errors.New("Only one protobuf config file is allowed").AtWarning()
+			return nil, errors.New("Only one protobuf config file is allowed")
 		}
 		r, err := confloader.LoadConfig(v[0])
 		common.Must(err)

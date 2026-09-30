@@ -61,7 +61,7 @@ func (v *JSONConfigLoader) Load(raw []byte) (interface{}, string, error) {
 	}
 	rawID, found := obj[v.idKey]
 	if !found {
-		return nil, "", errors.New(v.idKey, " not found in JSON context").AtError()
+		return nil, "", errors.New(v.idKey, " not found in JSON context")
 	}
 	var id string
 	if err := json.Unmarshal(rawID, &id); err != nil {

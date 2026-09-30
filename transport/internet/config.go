@@ -27,7 +27,7 @@ var strategy = [11][3]byte{
 
 func RegisterMethodConfigCreator(name string, creator ConfigCreator) error {
 	if _, found := globalTransportConfigCreatorCache[name]; found {
-		return errors.New("method ", name, " is already registered").AtError()
+		return errors.New("method ", name, " is already registered")
 	}
 	globalTransportConfigCreatorCache[name] = creator
 	return nil

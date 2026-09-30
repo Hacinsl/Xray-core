@@ -1,8 +1,7 @@
 package log // import "github.com/xtls/xray-core/common/log"
 
 import (
-	"os"
-	"sync"
+	"sync/atomic"
 
 	"github.com/xtls/xray-core/common/serial"
 )
@@ -30,7 +29,9 @@ func (m *GeneralMessage) String() string {
 
 // Record writes a message into log stream.
 func Record(msg Message) {
-	logHandler.Handle(msg)
+	if h := logHandler.Load(); h != nil {
+		(*h).Handle(msg)
+	}
 }
 
 // DefaultRecord writes a message into log stream.
@@ -42,15 +43,31 @@ func DefaultRecord(msg Message) {
 	}
 }
 
-var logHandler syncHandler
 var defaultLogHandler Handler
+
+type SeverityLogger interface {
+	Handler
+	Severity() Severity
+}
+
+func GetSeverity() Severity {
+	if h := logHandler.Load(); h != nil {
+		if sh, ok := (*h).(SeverityLogger); ok {
+			return sh.Severity()
+		}
+	}
+	// log everything by default
+	return Severity_Debug
+}
+
+var logHandler atomic.Pointer[Handler]
 
 // RegisterHandler registers a new handler as current log handler. Previous registered handler will be discarded.
 func RegisterHandler(handler Handler) {
 	if handler == nil {
 		panic("Log handler is nil")
 	}
-	logHandler.Set(handler)
+	logHandler.Store(&handler)
 }
 
 // RegisterDefaultHandler registers a new handler as the default log handler, which print all logs in console.
@@ -59,28 +76,5 @@ func RegisterDefaultHandler(handler Handler) {
 		panic("Log handler is nil")
 	}
 	defaultLogHandler = handler
-}
-
-// syncHandler protect Handler from being changed while calling Handle.
-type syncHandler struct {
-	sync.RWMutex
-	Handler
-}
-
-func (h *syncHandler) Handle(msg Message) {
-	h.RLock()
-	defer h.RUnlock()
-
-	if h.Handler != nil {
-		h.Handler.Handle(msg)
-	} else {
-		os.Stderr.WriteString("Log handler is nil when record '" + msg.String() + "'")
-	}
-}
-
-func (h *syncHandler) Set(handler Handler) {
-	h.Lock()
-	defer h.Unlock()
-
-	h.Handler = handler
+	logHandler.Store(&handler)
 }

@@ -17,7 +17,7 @@ var typeCreatorRegistry = make(map[reflect.Type]ConfigCreator)
 func RegisterConfig(config interface{}, configCreator ConfigCreator) error {
 	configType := reflect.TypeOf(config)
 	if _, found := typeCreatorRegistry[configType]; found {
-		return errors.New(configType.String() + " is already registered").AtError()
+		return errors.New(configType.String() + " is already registered")
 	}
 	// fmt.Printf("[note] Register ConfigCreator for %s\n", configType.Elem().PkgPath()+"."+configType.Elem().Name())
 	typeCreatorRegistry[configType] = configCreator
@@ -29,7 +29,7 @@ func CreateObject(ctx context.Context, config interface{}) (interface{}, error) 
 	configType := reflect.TypeOf(config)
 	creator, found := typeCreatorRegistry[configType]
 	if !found {
-		return nil, errors.New(configType.String() + " is not registered").AtError()
+		return nil, errors.New(configType.String() + " is not registered")
 	}
 	// fmt.Printf("[note] Create object for %s\n", configType.Elem().PkgPath()+"."+configType.Elem().Name())
 	return creator(ctx, config)

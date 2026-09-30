@@ -12,7 +12,7 @@ var transportListenerCache = make(map[string]ListenFunc)
 
 func RegisterTransportListener(method string, listener ListenFunc) error {
 	if _, found := transportListenerCache[method]; found {
-		return errors.New(method, " listener already registered.").AtError()
+		return errors.New(method, " listener already registered.")
 	}
 	transportListenerCache[method] = listener
 	return nil
@@ -40,7 +40,7 @@ func ListenUnix(ctx context.Context, address net.Address, settings *MemoryStream
 	method := settings.MethodName
 	listenFunc := transportListenerCache[method]
 	if listenFunc == nil {
-		return nil, errors.New(method, " unix listener not registered.").AtError()
+		return nil, errors.New(method, " unix listener not registered.")
 	}
 	listener, err := listenFunc(ctx, address, net.Port(0), settings, handler)
 	if err != nil {
@@ -72,7 +72,7 @@ func ListenTCP(ctx context.Context, address net.Address, port net.Port, settings
 	method := settings.MethodName
 	listenFunc := transportListenerCache[method]
 	if listenFunc == nil {
-		return nil, errors.New(method, " listener not registered.").AtError()
+		return nil, errors.New(method, " listener not registered.")
 	}
 	listener, err := listenFunc(ctx, address, port, settings, handler)
 	if err != nil {
