@@ -151,6 +151,9 @@ func LoadConfig(formatName string, input interface{}) (*Config, error) {
 		// } else {
 		// 	return nil, errors.New("Unable to load config in", formatName).AtWarning()
 		// }
+		if f := GetFormatByExtension(formatName); f == "protobuf" {
+			return ProtobufLoader(v)
+		}
 		return ConfigBuilderForFiles([]*ConfigSource{
 			{Name: formatName, Format: formatName, Reader: v},
 		})

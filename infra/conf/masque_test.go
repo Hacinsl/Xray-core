@@ -80,16 +80,16 @@ func TestMasqueOutboundConfig(t *testing.T) {
 	if err := build(`{
 		"protocol": "masque",
 		"settings": {"address": "example.com", "port": 443},
-		"streamSettings": {"network": "masque", "security": "tls"},
+		"streamSettings": {"method": "masque", "security": "tls"},
 		"mux": {"enabled": false, "concurrency": -1}
 	}`); err != nil {
 		t.Error(err)
 	}
 	for _, input := range []string{
-		`{"protocol": "masque", "settings": {"address": "example.com"}, "streamSettings": {"network": "masque", "security": "tls"}}`,
-		`{"protocol": "masque", "settings": {"address": "example.com", "port": 443}, "streamSettings": {"network": "masque", "security": "tls"}, "mux": {"enabled": true}}`,
-		`{"protocol": "masque", "settings": {"address": "example.com", "port": 443}, "streamSettings": {"network": "masque", "security": "tls"}, "mux": {"enabled": true, "concurrency": -1}}`,
-		`{"protocol": "freedom", "streamSettings": {"network": "masque", "security": "tls"}}`,
+		`{"protocol": "masque", "settings": {"address": "example.com"}, "streamSettings": {"method": "masque", "security": "tls"}}`,
+		`{"protocol": "masque", "settings": {"address": "example.com", "port": 443}, "streamSettings": {"method": "masque", "security": "tls"}, "mux": {"enabled": true}}`,
+		`{"protocol": "masque", "settings": {"address": "example.com", "port": 443}, "streamSettings": {"method": "masque", "security": "tls"}, "mux": {"enabled": true, "concurrency": -1}}`,
+		`{"protocol": "freedom", "streamSettings": {"method": "masque", "security": "tls"}}`,
 	} {
 		if err := build(input); err == nil {
 			t.Errorf("expected an error for %s", input)
@@ -173,7 +173,7 @@ func TestMasqueInboundConfig(t *testing.T) {
 		"protocol": "masque",
 		"port": 443,
 		"settings": {"users": [{"email": "u@example.com", "pass": "p"}], "address": ["10.13.0.1/24"]},
-		"streamSettings": {"network": "masque", "security": "tls"}
+		"streamSettings": {"method": "masque", "security": "tls"}
 	}`); err != nil {
 		t.Error(err)
 	}
@@ -181,7 +181,7 @@ func TestMasqueInboundConfig(t *testing.T) {
 		"protocol": "vless",
 		"port": 443,
 		"settings": {"users": [{"id": "27848739-7e62-4138-9fd3-098a63964b6b"}], "decryption": "none"},
-		"streamSettings": {"network": "masque", "security": "tls"}
+		"streamSettings": {"method": "masque", "security": "tls"}
 	}`); err == nil {
 		t.Error("expected an error for the masque transport on a vless inbound")
 	}

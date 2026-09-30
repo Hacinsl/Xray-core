@@ -333,7 +333,7 @@ func TestRelayTCPHandshakeForwarding(t *testing.T) {
 			defer relayConn.Close()
 
 			go func() {
-				_ = inbound.Process(testCtx, net.Delivery_Packet, &dummyStatConn{Conn: relayConn}, disp)
+				_ = inbound.Process(testCtx, net.Delivery_Stream, &dummyStatConn{Conn: relayConn}, disp)
 			}()
 
 			clientSalt := make([]byte, method.KeySaltLength)

@@ -21,6 +21,7 @@ var methodSettingsLoader = NewJSONConfigLoader(ConfigCreatorCache{
 	"websocket":   func() interface{} { return new(WebSocketConfig) },
 	"httpupgrade": func() interface{} { return new(HttpUpgradeConfig) },
 	"hysteria":    func() interface{} { return new(HysteriaConfig) },
+	"masque":      func() interface{} { return new(MasqueConfig) },
 	"xdrive":      func() interface{} { return new(XDriveConfig) },
 }, "method", "settings")
 

@@ -257,11 +257,11 @@ func (s *Server) GetUsersCount(context.Context) int64 {
 	return s.validator.count()
 }
 
-func (s *Server) Network() []net.Network {
-	return []net.Network{net.Network_TCP}
+func (s *Server) Delivery() []net.Delivery {
+	return []net.Delivery{net.Delivery_Stream}
 }
 
-func (s *Server) Process(ctx context.Context, network net.Network, conn stat.Connection, dispatcher routing.Dispatcher) error {
+func (s *Server) Process(ctx context.Context, network net.Delivery, conn stat.Connection, dispatcher routing.Dispatcher) error {
 	sconn, ok := stat.TryUnwrapStatsConn(conn).(*masque.ServerConn)
 	if !ok {
 		return errors.New("not a MASQUE connection")

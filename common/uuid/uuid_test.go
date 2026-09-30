@@ -35,7 +35,7 @@ func TestParseString(t *testing.T) {
 	}
 
 	u0, _ := ParseString("example")
-	u5, _ := ParseString("feb54431-301b-52bb-a6dd-e1e93e81bb9e")
+	u5, _ := ParseString("c3499c27-2973-5a7f-807e-fb8676a92dcb")
 	if r := cmp.Diff(u0, u5); r != "" {
 		t.Fatal(r)
 	}
