@@ -546,8 +546,8 @@ func (c *Config) Build() (*core.Config, error) {
 		}
 	}
 
-	if err := PostProcessConfigureFile(c); err != nil {
-		return nil, errors.New("failed to post-process configuration file").Base(err)
+	if err := PreProcessConfigureFile(c); err != nil {
+		return nil, errors.New("failed to pre-process configuration file").Base(err)
 	}
 
 	config := &core.Config{

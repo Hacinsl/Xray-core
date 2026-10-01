@@ -1,24 +1,51 @@
 package conf
 
-import "github.com/xtls/xray-core/common/errors"
+import (
+	"reflect"
 
-type ConfigureFilePostProcessingStage interface {
-	Process(conf *Config) error
-}
+	"github.com/xtls/xray-core/common/errors"
+	"github.com/xtls/xray-core/core"
+)
 
-var configureFilePostProcessingStages map[string]ConfigureFilePostProcessingStage
+type ConfigureFilePreProcessingStage func(conf *Config) error
 
-func RegisterConfigureFilePostProcessingStage(name string, stage ConfigureFilePostProcessingStage) {
-	if configureFilePostProcessingStages == nil {
-		configureFilePostProcessingStages = make(map[string]ConfigureFilePostProcessingStage)
+var configureFilePreProcessingStages = make(map[reflect.Type]ConfigureFilePreProcessingStage)
+
+func RegisterConfigureFilePreProcessingStage(config interface{}, stage ConfigureFilePreProcessingStage) error {
+	configType := reflect.TypeOf(config)
+	if _, found := configureFilePreProcessingStages[configType]; found {
+		return errors.New(configType.String() + " is already registered.")
 	}
-	configureFilePostProcessingStages[name] = stage
+	configureFilePreProcessingStages[configType] = stage
+	return nil
 }
 
-func PostProcessConfigureFile(conf *Config) error {
-	for k, v := range configureFilePostProcessingStages {
-		if err := v.Process(conf); err != nil {
-			return errors.New("Rejected by Postprocessing Stage ", k).Base(err)
+func PreProcessConfigureFile(conf *Config) error {
+	for configType, stage := range configureFilePreProcessingStages {
+		if err := stage(conf); err != nil {
+			return errors.New("Rejected by Preprocessing Stage ", configType.String()).Base(err)
+		}
+	}
+	return nil
+}
+
+type ConfigureFilePostProcessingStage func(conf *core.Config) error
+
+var configureFilePostProcessingStages = make(map[reflect.Type]ConfigureFilePostProcessingStage)
+
+func RegisterConfigureFilePostProcessingStage(config interface{}, stage ConfigureFilePostProcessingStage) error {
+	configType := reflect.TypeOf(config)
+	if _, found := configureFilePostProcessingStages[configType]; found {
+		return errors.New(configType.String() + " is already registered.")
+	}
+	configureFilePostProcessingStages[configType] = stage
+	return nil
+}
+
+func PostProcessConfigureFile(conf *core.Config) error {
+	for configType, stage := range configureFilePostProcessingStages {
+		if err := stage(conf); err != nil {
+			return errors.New("Rejected by Postprocessing Stage ", configType.String()).Base(err)
 		}
 	}
 	return nil

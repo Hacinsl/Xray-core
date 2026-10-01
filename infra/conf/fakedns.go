@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/xtls/xray-core/app/dns/fakedns"
+	"github.com/xtls/xray-core/common"
 	"github.com/xtls/xray-core/common/errors"
 	"github.com/xtls/xray-core/features/dns"
 )
@@ -67,9 +68,7 @@ func (f *FakeDNSConfig) Build() (*fakedns.FakeDnsPoolMulti, error) {
 	return nil, errors.New("no valid FakeDNS config")
 }
 
-type FakeDNSPostProcessingStage struct{}
-
-func (FakeDNSPostProcessingStage) Process(config *Config) error {
+func preProcessFakeDNSConfig(config *Config) error {
 	fakeDNSInUse := false
 	isIPv4Enable, isIPv6Enable := true, true
 
@@ -131,4 +130,10 @@ func (FakeDNSPostProcessingStage) Process(config *Config) error {
 	}
 
 	return nil
+}
+
+func init() {
+	common.Must(RegisterConfigureFilePreProcessingStage(&FakeDNSConfig{}, func(conf *Config) error {
+		return preProcessFakeDNSConfig(conf)
+	}))
 }
