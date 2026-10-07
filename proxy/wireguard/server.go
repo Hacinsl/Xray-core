@@ -137,6 +137,7 @@ func NewServer(ctx context.Context, conf *InboundConfig) (*Server, error) {
 	}
 	// Install the stack's protocol handlers before the device can deliver packets to it (Start -> dev.Up).
 	CreateForwarder(stack, s.HandleConnection)
+	CreateICMPEchoResponder(stack)
 	return s, nil
 }
 
