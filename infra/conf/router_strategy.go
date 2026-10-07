@@ -41,7 +41,7 @@ type strategyLeastLoadConfig struct {
 }
 
 // Build implements Buildable.
-func (v *strategyLeastLoadConfig) Build() (*router.StrategyLeastLoadConfig, error) {
+func (v *strategyLeastLoadConfig) Build() (proto.Message, error) {
 	config := &router.StrategyLeastLoadConfig{}
 	config.Costs = v.Costs
 	config.Tolerance = float32(v.Tolerance)

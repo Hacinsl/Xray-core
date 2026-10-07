@@ -63,7 +63,6 @@ func (p TransportMethod) Build() (string, error) {
 	}
 }
 
-// 多态 method + methodSettings，以及 security + securitySettings
 type StreamConfig struct {
 	Address          *Address         `json:"address"`
 	Port             uint16           `json:"port"`
@@ -91,9 +90,9 @@ func (c *StreamConfig) Build() (*internet.StreamConfig, error) {
 		}
 		config.MethodName = method
 
-		if c.Security == "reality" && method != "tcp" && method != "splithttp" && method != "grpc" {
-			return nil, errors.New("REALITY only supports RAW, XHTTP and gRPC for now.")
-		}
+		// if c.Security == "reality" && method != "tcp" && method != "splithttp" && method != "grpc" {
+		// 	return nil, errors.New("REALITY only supports RAW, XHTTP and gRPC for now.")
+		// }
 
 		methodSettings := []byte("{}")
 		if c.MethodSettings != nil {
@@ -124,7 +123,7 @@ func (c *StreamConfig) Build() (*internet.StreamConfig, error) {
 		}
 		ts, err := rawConfig.(Buildable).Build()
 		if err != nil {
-			return nil, errors.New("Failed to build method config for ", c.Security).Base(err)
+			return nil, errors.New("Failed to build security config for ", c.Security).Base(err)
 		}
 		tm := serial.ToTypedMessage(ts)
 		config.SecuritySettings = append(config.SecuritySettings, tm)

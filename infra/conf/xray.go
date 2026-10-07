@@ -14,9 +14,13 @@ import (
 	"github.com/xtls/xray-core/common/net"
 	"github.com/xtls/xray-core/common/serial"
 	core "github.com/xtls/xray-core/core"
-	"github.com/xtls/xray-core/proxy/freedom"
-	"github.com/xtls/xray-core/proxy/masque"
+	"github.com/xtls/xray-core/proxy/trojan"
+	"github.com/xtls/xray-core/proxy/vless"
+	vlessInbound "github.com/xtls/xray-core/proxy/vless/inbound"
+	vlessOutbound "github.com/xtls/xray-core/proxy/vless/outbound"
 	"github.com/xtls/xray-core/transport/internet"
+	"github.com/xtls/xray-core/transport/internet/reality"
+	"github.com/xtls/xray-core/transport/internet/tls"
 )
 
 var (
@@ -178,10 +182,6 @@ func (c *InboundDetourConfig) Build() (*core.InboundHandlerConfig, error) {
 			return nil, err
 		}
 		receiverSettings.StreamSettings = ss
-		if strings.Contains(ss.SecurityType, "reality") && (receiverSettings.PortList == nil ||
-			len(receiverSettings.PortList.Ports()) != 1 || receiverSettings.PortList.Ports()[0] != 443) {
-			errors.LogDefaultWarning(`REALITY: Listening on non-443 ports will increase the likelihood of your server's IP being blocked by the GFW`)
-		}
 	}
 	if c.SniffingConfig != nil {
 		s, err := c.SniffingConfig.Build()
@@ -205,9 +205,6 @@ func (c *InboundDetourConfig) Build() (*core.InboundHandlerConfig, error) {
 	if err != nil {
 		return nil, errors.New("failed to build inbound handler for protocol ", c.Protocol).Base(err)
 	}
-	if _, ok := ts.(*masque.ServerConfig); !ok && receiverSettings.StreamSettings != nil && receiverSettings.StreamSettings.MethodName == "masque" {
-		return nil, errors.New("the masque transport can only be used by the masque inbound")
-	}
 
 	return &core.InboundHandlerConfig{
 		Tag:              c.Tag,
@@ -227,8 +224,8 @@ type OutboundDetourConfig struct {
 	TargetStrategy string           `json:"targetStrategy"`
 }
 
-func requiresTransportSecurity(address *Address) bool {
-	if address == nil || address.Address == nil {
+func requiresTransportSecurity(address net.Address) bool {
+	if address == nil {
 		return false
 	}
 	if address.Family().IsIP() {
@@ -238,22 +235,35 @@ func requiresTransportSecurity(address *Address) bool {
 	return !geodata.GetPrivateDomainMatcher().MatchAny(domain)
 }
 
-func validateOutboundTransportSecurity(rawConfig interface{}, senderSettings *proxyman.SenderConfig) error {
-	if senderSettings.StreamSettings != nil && senderSettings.StreamSettings.GetSecurityType() != "" {
+func validateOutboundTransportSecurity(proxySettings *serial.TypedMessage, senderSettings *proxyman.SenderConfig) error {
+	if ss := senderSettings.GetStreamSettings(); ss != nil && ss.GetSecurityType() != "" {
+		return nil
+	}
+	if proxySettings == nil {
 		return nil
 	}
 
-	if vlessCfg, ok := rawConfig.(*VLessOutboundConfig); ok {
-		if vlessCfg.Encryption != "" && vlessCfg.Encryption != "none" {
-			return nil
-		}
-		if requiresTransportSecurity(vlessCfg.Address) {
-			return errors.New("vless without TLS or other encryption is prohibited unless the server address is a private IP or domain")
-		}
+	instance, err := proxySettings.GetInstance()
+	if err != nil {
+		return errors.New("failed to instantiate outbound proxy settings").Base(err)
 	}
 
-	if tjCfg, ok := rawConfig.(*TrojanClientConfig); ok {
-		if requiresTransportSecurity(tjCfg.Servers[0].Address) {
+	switch cfg := instance.(type) {
+	case *vlessOutbound.Config:
+		// VLESS Encryption (any "encryption" other than "none") is transport
+		// security by itself, so it is always allowed.
+		if acc := cfg.GetVnext().GetUser().GetAccount(); acc != nil {
+			if a, err := acc.GetInstance(); err == nil {
+				if va, ok := a.(*vless.Account); ok && va.GetEncryption() != "" && va.GetEncryption() != "none" {
+					return nil
+				}
+			}
+		}
+		if requiresTransportSecurity(cfg.GetVnext().GetAddress().AsAddress()) {
+			return errors.New("vless without TLS or other encryption is prohibited unless the server address is a private IP or domain")
+		}
+	case *trojan.ClientConfig:
+		if requiresTransportSecurity(cfg.GetServer().GetAddress().AsAddress()) {
 			return errors.New("trojan without TLS is prohibited unless the server address is a private IP or domain")
 		}
 	}
@@ -338,42 +348,6 @@ func (c *OutboundDetourConfig) Build() (*core.OutboundHandlerConfig, error) {
 	ts, err := rawConfig.(Buildable).Build()
 	if err != nil {
 		return nil, errors.New("failed to build outbound handler for protocol ", c.Protocol).Base(err)
-	}
-	if err := validateOutboundTransportSecurity(rawConfig, senderSettings); err != nil {
-		return nil, err
-	}
-
-	if _, ok := ts.(*masque.ClientConfig); ok {
-		if ms := senderSettings.MultiplexSettings; ms != nil && ms.Enabled {
-			return nil, errors.New(`masque outbound does not support "mux"`)
-		}
-	} else if senderSettings.StreamSettings != nil && senderSettings.StreamSettings.MethodName == "masque" {
-		return nil, errors.New("the masque transport can only be used by the masque outbound")
-	}
-
-	if fc, ok := ts.(*freedom.Config); ok {
-		if senderSettings.StreamSettings != nil &&
-			senderSettings.StreamSettings.SocketSettings != nil &&
-			senderSettings.StreamSettings.SocketSettings.AddressPortStrategy != internet.AddressPortStrategy_None {
-			return nil, errors.New(`freedom outbound does not support "sockopt.addressPortStrategy"`)
-		}
-
-		var strategy internet.DomainStrategy
-		if strategy = senderSettings.TargetStrategy; strategy != internet.DomainStrategy_AS_IS {
-			errors.LogDefaultWarning(`The "outbound.targetStrategy" setting is not supported directly by freedom and has been automatically migrated to "sockopt.domainStrategy" with no behavior change.`)
-			senderSettings.TargetStrategy = internet.DomainStrategy_AS_IS
-		} else if strategy = fc.DomainStrategy; strategy != internet.DomainStrategy_AS_IS {
-			errors.LogDefaultWarning(`The "freedom.domainStrategy" setting is deprecated and will be removed. For compatibility, its value has been automatically migrated to "sockopt.domainStrategy". Please update your config before removal.`)
-		}
-		if strategy != internet.DomainStrategy_AS_IS {
-			if senderSettings.StreamSettings == nil {
-				senderSettings.StreamSettings = &internet.StreamConfig{}
-			}
-			if senderSettings.StreamSettings.SocketSettings == nil {
-				senderSettings.StreamSettings.SocketSettings = &internet.SocketConfig{}
-			}
-			senderSettings.StreamSettings.SocketSettings.DomainStrategy = strategy
-		}
 	}
 
 	return &core.OutboundHandlerConfig{
@@ -685,6 +659,10 @@ func (c *Config) Build() (*core.Config, error) {
 		config.Outbound = append(config.Outbound, oc)
 	}
 
+	if err := PostProcessConfigureFile(config); err != nil {
+		return nil, errors.New("failed to post-process configuration file").Base(err)
+	}
+
 	return config, nil
 }
 
@@ -693,4 +671,96 @@ func ParseSendThough(Addr *string) *Address {
 	var addr Address
 	addr.Address = net.ParseAddress(strings.Split(*Addr, "/")[0])
 	return &addr
+}
+
+func outboundTransportSecurityCheck(conf *core.Config) error {
+	for _, outbound := range conf.Outbound {
+		tss, _ := outbound.GetSenderSettings().GetInstance()
+		if tss == nil {
+			continue
+		}
+		ss := tss.(*proxyman.SenderConfig)
+		if err := validateOutboundTransportSecurity(outbound.ProxySettings, ss); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func vlessVisionTransportCompatCheck(conf *core.Config) error {
+	for _, inbound := range conf.Inbound {
+		trs, _ := inbound.GetReceiverSettings().GetInstance()
+		notTcpTlsReality := false
+		if trs == nil {
+			continue
+		}
+		rs := trs.(*proxyman.ReceiverConfig)
+		ss := rs.GetStreamSettings()
+		if ss == nil {
+			continue
+		}
+		if ss.GetMethodName() != "tcp" {
+			notTcpTlsReality = true
+		} else if ss.GetSecurityType() != serial.GetMessageType(&reality.Config{}) && ss.GetSecurityType() != serial.GetMessageType(&tls.Config{}) {
+			notTcpTlsReality = true
+		}
+
+		tps, _ := inbound.GetProxySettings().GetInstance()
+		if tps == nil {
+			continue
+		}
+		if ps, ok := tps.(*vlessInbound.Config); ok {
+			for _, user := range ps.GetUsers() {
+				ta, _ := user.Account.GetInstance()
+				if ta == nil {
+					continue
+				}
+				if a, ok := ta.(*vless.Account); ok {
+					if notTcpTlsReality && ps.Decryption == "none" && a.Flow == vless.XRV {
+						return errors.New(`flow "xtls-rprx-vision" (XTLS Vision) requires either TLS/REALITY security on RAW transport, or VLESS Encryption enabled.`)
+					}
+				}
+			}
+		}
+	}
+	for _, outbound := range conf.Outbound {
+		tss, _ := outbound.GetSenderSettings().GetInstance()
+		notTcpTlsReality := false
+		if tss == nil {
+			continue
+		}
+		ss := tss.(*proxyman.SenderConfig)
+		ss2 := ss.GetStreamSettings()
+		if ss == nil {
+			continue
+		}
+		if ss2.GetMethodName() != "tcp" {
+			notTcpTlsReality = true
+		} else if ss2.GetSecurityType() != serial.GetMessageType(&reality.Config{}) && ss2.GetSecurityType() != serial.GetMessageType(&tls.Config{}) {
+			notTcpTlsReality = true
+		}
+
+		tps, _ := outbound.GetProxySettings().GetInstance()
+		if tps == nil {
+			continue
+		}
+		if ps, ok := tps.(*vlessOutbound.Config); ok {
+			user := ps.Vnext.GetUser()
+			ta, _ := user.Account.GetInstance()
+			if ta == nil {
+				continue
+			}
+			if a, ok := ta.(*vless.Account); ok {
+				if notTcpTlsReality && a.Encryption == "none" && a.Flow == vless.XRV {
+					return errors.New(`flow "xtls-rprx-vision" (XTLS Vision) requires either TLS/REALITY security on RAW transport, or VLESS Encryption enabled.`)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func init() {
+	RegisterConfigureFilePostProcessingStage(outboundTransportSecurityCheck)
+	RegisterConfigureFilePostProcessingStage(vlessVisionTransportCompatCheck)
 }

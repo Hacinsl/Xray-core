@@ -10,8 +10,11 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/xtls/xray-core/app/proxyman"
 	"github.com/xtls/xray-core/common/errors"
 	"github.com/xtls/xray-core/common/net"
+	"github.com/xtls/xray-core/common/serial"
+	"github.com/xtls/xray-core/core"
 	"github.com/xtls/xray-core/transport/internet/reality"
 	"github.com/xtls/xray-core/transport/internet/tls"
 	"google.golang.org/protobuf/proto"
@@ -404,4 +407,66 @@ func (c *TLSConfig) Build() (proto.Message, error) {
 	}
 
 	return config, nil
+}
+
+func realityNon443Check(conf *core.Config) error {
+	for _, inbound := range conf.Inbound {
+		trs, _ := inbound.GetReceiverSettings().GetInstance()
+		if trs == nil {
+			continue
+		}
+		rs := trs.(*proxyman.ReceiverConfig)
+		ss := rs.GetStreamSettings()
+		if ss == nil {
+			continue
+		}
+		if ss.SecurityType == serial.GetMessageType(&reality.Config{}) {
+			addr := rs.GetListen().AsAddress()
+			if addr != nil && ((addr.Family().IsIP() && addr.IP().IsLoopback()) || (addr.Family().IsDomain() && strings.EqualFold(addr.Domain(), "localhost"))) {
+				// exclude loopback
+				continue
+			}
+			if rs.PortList == nil || len(rs.PortList.Ports()) != 1 || rs.PortList.Ports()[0] != 443 {
+				errors.LogDefaultWarning("Inbound tag " + inbound.GetTag() + ": REALITY: Listening on non-443 ports will increase the likelihood of your server's IP being blocked by the GFW")
+			}
+		}
+	}
+	return nil
+}
+
+func realityTransportCompatCheck(conf *core.Config) error {
+	for _, inbound := range conf.Inbound {
+		trs, _ := inbound.GetReceiverSettings().GetInstance()
+		if trs == nil {
+			continue
+		}
+		rs := trs.(*proxyman.ReceiverConfig)
+		ss := rs.GetStreamSettings()
+		if ss == nil {
+			continue
+		}
+		if ss.SecurityType == serial.GetMessageType(&reality.Config{}) && ss.MethodName != "tcp" && ss.MethodName != "splithttp" && ss.MethodName != "grpc" {
+			return errors.New("REALITY only supports RAW, XHTTP and gRPC for now.")
+		}
+	}
+	for _, outbound := range conf.Outbound {
+		tss, _ := outbound.GetSenderSettings().GetInstance()
+		if tss == nil {
+			continue
+		}
+		ss := tss.(*proxyman.SenderConfig)
+		ss2 := ss.GetStreamSettings()
+		if ss2 == nil {
+			continue
+		}
+		if ss2.SecurityType == serial.GetMessageType(&reality.Config{}) && ss2.MethodName != "tcp" && ss2.MethodName != "splithttp" && ss2.MethodName != "grpc" {
+			return errors.New("REALITY only supports RAW, XHTTP and gRPC for now.")
+		}
+	}
+	return nil
+}
+
+func init() {
+	RegisterConfigureFilePostProcessingStage(realityNon443Check)
+	RegisterConfigureFilePostProcessingStage(realityTransportCompatCheck)
 }

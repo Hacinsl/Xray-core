@@ -6,10 +6,13 @@ import (
 	"net"
 	"strings"
 
+	"github.com/xtls/xray-core/app/proxyman"
 	"github.com/xtls/xray-core/common/errors"
 	"github.com/xtls/xray-core/common/geodata"
 	xnet "github.com/xtls/xray-core/common/net"
 	"github.com/xtls/xray-core/common/protocol"
+	"github.com/xtls/xray-core/common/serial"
+	core "github.com/xtls/xray-core/core"
 	"github.com/xtls/xray-core/proxy/freedom"
 	"github.com/xtls/xray-core/transport/internet"
 	"google.golang.org/protobuf/proto"
@@ -284,4 +287,58 @@ func (c *FreedomFinalRuleConfig) Build() (*freedom.FinalRuleConfig, error) {
 	}
 
 	return rule, nil
+}
+
+// freedomOutboundCheck validates the transport settings of freedom outbounds,
+// and migrates the deprecated strategies to "sockopt.domainStrategy".
+func freedomOutboundCheck(conf *core.Config) error {
+	for _, outbound := range conf.Outbound {
+		if outbound.GetProxySettings().GetType() != serial.GetMessageType(&freedom.Config{}) {
+			continue
+		}
+		ps, err := outbound.GetProxySettings().GetInstance()
+		if err != nil {
+			continue
+		}
+		fc, ok := ps.(*freedom.Config)
+		if !ok {
+			continue
+		}
+		tss, err := outbound.GetSenderSettings().GetInstance()
+		if err != nil {
+			continue
+		}
+		ss, ok := tss.(*proxyman.SenderConfig)
+		if !ok {
+			continue
+		}
+
+		if ss.GetStreamSettings().GetSocketSettings().GetAddressPortStrategy() != internet.AddressPortStrategy_None {
+			return errors.New("Outbound tag " + outbound.GetTag() + `: freedom outbound does not support "sockopt.addressPortStrategy"`)
+		}
+
+		var strategy internet.DomainStrategy
+		if strategy = ss.TargetStrategy; strategy != internet.DomainStrategy_AS_IS {
+			errors.LogDefaultWarning(`The "outbound.targetStrategy" setting is not supported directly by freedom and has been automatically migrated to "sockopt.domainStrategy" with no behavior change.`)
+			ss.TargetStrategy = internet.DomainStrategy_AS_IS
+		} else if strategy = fc.DomainStrategy; strategy != internet.DomainStrategy_AS_IS {
+			errors.LogDefaultWarning(`The "freedom.domainStrategy" setting is deprecated and will be removed. For compatibility, its value has been automatically migrated to "sockopt.domainStrategy". Please update your config before removal.`)
+		}
+		if strategy == internet.DomainStrategy_AS_IS {
+			continue
+		}
+		if ss.StreamSettings == nil {
+			ss.StreamSettings = &internet.StreamConfig{}
+		}
+		if ss.StreamSettings.SocketSettings == nil {
+			ss.StreamSettings.SocketSettings = &internet.SocketConfig{}
+		}
+		ss.StreamSettings.SocketSettings.DomainStrategy = strategy
+		outbound.SenderSettings = serial.ToTypedMessage(ss)
+	}
+	return nil
+}
+
+func init() {
+	RegisterConfigureFilePostProcessingStage(freedomOutboundCheck)
 }

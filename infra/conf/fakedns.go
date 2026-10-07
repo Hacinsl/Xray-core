@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/xtls/xray-core/app/dns/fakedns"
-	"github.com/xtls/xray-core/common"
 	"github.com/xtls/xray-core/common/errors"
 	"github.com/xtls/xray-core/features/dns"
 )
@@ -133,7 +132,5 @@ func preProcessFakeDNSConfig(config *Config) error {
 }
 
 func init() {
-	common.Must(RegisterConfigureFilePreProcessingStage(&FakeDNSConfig{}, func(conf *Config) error {
-		return preProcessFakeDNSConfig(conf)
-	}))
+	RegisterConfigureFilePreProcessingStage(preProcessFakeDNSConfig)
 }

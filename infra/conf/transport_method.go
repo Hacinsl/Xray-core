@@ -6,15 +6,19 @@ import (
 	"maps"
 	"math/big"
 	"net/url"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
 
+	"github.com/xtls/xray-core/app/proxyman"
 	"github.com/xtls/xray-core/common"
 	"github.com/xtls/xray-core/common/errors"
 	"github.com/xtls/xray-core/common/platform/filesystem"
 	"github.com/xtls/xray-core/common/serial"
 	"github.com/xtls/xray-core/common/utils"
+	"github.com/xtls/xray-core/core"
+	pmasque "github.com/xtls/xray-core/proxy/masque"
 	"github.com/xtls/xray-core/transport/internet"
 	"github.com/xtls/xray-core/transport/internet/grpc"
 	"github.com/xtls/xray-core/transport/internet/headers/http"
@@ -25,6 +29,7 @@ import (
 	"github.com/xtls/xray-core/transport/internet/masque"
 	"github.com/xtls/xray-core/transport/internet/splithttp"
 	"github.com/xtls/xray-core/transport/internet/tcp"
+	"github.com/xtls/xray-core/transport/internet/tls"
 	"github.com/xtls/xray-core/transport/internet/websocket"
 	"github.com/xtls/xray-core/transport/internet/xdrive"
 	"golang.org/x/net/http/httpguts"
@@ -902,4 +907,112 @@ func (c *XDriveConfig) Build() (proto.Message, error) {
 		Template:          string(c.Template),
 	}
 	return config, nil
+}
+
+func masqueTransportInboundCheck(conf *core.Config) error {
+	for _, inbound := range conf.Inbound {
+		trs, _ := inbound.GetReceiverSettings().GetInstance()
+		if trs == nil {
+			continue
+		}
+		rs := trs.(*proxyman.ReceiverConfig)
+		if inbound.GetProxySettings().GetType() != serial.GetMessageType(&pmasque.ServerConfig{}) && rs.GetStreamSettings() != nil &&
+			rs.GetStreamSettings().GetMethodName() == "masque" {
+			return errors.New("Inbound tag " + inbound.GetTag() + ": the masque transport can only be used by the masque inbound")
+		}
+	}
+	return nil
+}
+
+func masqueTransportOutboundCheck(conf *core.Config) error {
+	for _, outbound := range conf.Outbound {
+		tss, _ := outbound.GetSenderSettings().GetInstance()
+		if tss == nil {
+			continue
+		}
+		ss := tss.(*proxyman.SenderConfig)
+		if outbound.GetProxySettings().GetType() != serial.GetMessageType(&pmasque.ClientConfig{}) && ss.GetStreamSettings().GetMethodName() == "masque" {
+			return errors.New("Outbound tag " + outbound.GetTag() + ": the masque transport can only be used by the masque outbound")
+		}
+	}
+	return nil
+}
+
+func masqueTransportMuxCheck(conf *core.Config) error {
+	for _, outbound := range conf.Outbound {
+		tss, _ := outbound.GetSenderSettings().GetInstance()
+		if tss == nil {
+			continue
+		}
+		ss := tss.(*proxyman.SenderConfig)
+		if outbound.GetProxySettings().GetType() == serial.GetMessageType(&pmasque.ClientConfig{}) {
+			if ms := ss.MultiplexSettings; ms != nil && ms.Enabled {
+				return errors.New(`masque outbound does not support "mux"`)
+			}
+		}
+	}
+	return nil
+}
+
+func splithttpTlsAlpnMixCheck(conf *core.Config) error {
+	for _, inbound := range conf.Inbound {
+		trs, _ := inbound.GetReceiverSettings().GetInstance()
+		if trs == nil {
+			continue
+		}
+		rs := trs.(*proxyman.ReceiverConfig)
+		ss := rs.GetStreamSettings()
+		if ss == nil {
+			continue
+		}
+		if ss.GetMethodName() == "splithttp" {
+			if len(ss.GetSecuritySettings()) == 0 {
+				continue
+			}
+			tss2, _ := ss.GetSecuritySettings()[0].GetInstance()
+			if tss2 == nil {
+				continue
+			}
+			if ss2, ok := tss2.(*tls.Config); ok {
+				alpn := ss2.GetNextProtocol()
+				if slices.Contains(alpn, "h3") && len(alpn) > 1 {
+					return errors.New(`HTTP/3 cannot be used in conjunction with other protocol versions("alpn").`)
+				}
+			}
+		}
+	}
+	for _, outbound := range conf.Outbound {
+		tss, _ := outbound.GetSenderSettings().GetInstance()
+		if tss == nil {
+			continue
+		}
+		ss := tss.(*proxyman.SenderConfig)
+		ss2 := ss.GetStreamSettings()
+		if ss2 == nil {
+			continue
+		}
+		if ss2.GetMethodName() == "splithttp" {
+			if len(ss2.GetSecuritySettings()) == 0 {
+				continue
+			}
+			tss3, _ := ss2.GetSecuritySettings()[0].GetInstance()
+			if tss3 == nil {
+				continue
+			}
+			if ss3, ok := tss3.(*tls.Config); ok {
+				alpn := ss3.GetNextProtocol()
+				if slices.Contains(alpn, "h3") && len(alpn) > 1 {
+					return errors.New(`HTTP/3 cannot be used in conjunction with other protocol versions("alpn").`)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func init() {
+	RegisterConfigureFilePostProcessingStage(masqueTransportInboundCheck)
+	RegisterConfigureFilePostProcessingStage(masqueTransportOutboundCheck)
+	RegisterConfigureFilePostProcessingStage(masqueTransportMuxCheck)
+	RegisterConfigureFilePostProcessingStage(splithttpTlsAlpnMixCheck)
 }

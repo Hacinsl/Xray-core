@@ -11,6 +11,16 @@ import (
 	"github.com/xtls/xray-core/transport/internet/masque"
 )
 
+// buildConfigJSON wraps a single "inbounds"/"outbounds" entry into a whole configuration file so that the post-processing stages are exercised as well.
+func buildConfigJSON(section string, detour string) error {
+	c := new(Config)
+	if err := json.Unmarshal([]byte(`{"`+section+`":[`+detour+`]}`), c); err != nil {
+		return err
+	}
+	_, err := c.Build()
+	return err
+}
+
 func TestMasqueConfig(t *testing.T) {
 	creator := func() Buildable {
 		return new(MasqueConfig)
@@ -69,12 +79,7 @@ func TestMasqueConfig(t *testing.T) {
 
 func TestMasqueOutboundConfig(t *testing.T) {
 	build := func(s string) error {
-		c := new(OutboundDetourConfig)
-		if err := json.Unmarshal([]byte(s), c); err != nil {
-			return err
-		}
-		_, err := c.Build()
-		return err
+		return buildConfigJSON("outbounds", s)
 	}
 
 	if err := build(`{
@@ -161,12 +166,7 @@ func TestMasqueServerConfig(t *testing.T) {
 
 func TestMasqueInboundConfig(t *testing.T) {
 	build := func(s string) error {
-		c := new(InboundDetourConfig)
-		if err := json.Unmarshal([]byte(s), c); err != nil {
-			return err
-		}
-		_, err := c.Build()
-		return err
+		return buildConfigJSON("inbounds", s)
 	}
 
 	if err := build(`{
