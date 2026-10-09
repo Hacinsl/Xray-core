@@ -760,6 +760,29 @@ func vlessVisionTransportCompatCheck(conf *core.Config) error {
 	return nil
 }
 
+func vlessFallbackTransportCompatCheck(conf *core.Config) error {
+	for _, inbound := range conf.Inbound {
+		trs, _ := inbound.GetReceiverSettings().GetInstance()
+		if trs == nil {
+			continue
+		}
+		rs := trs.(*proxyman.ReceiverConfig)
+		ss := rs.GetStreamSettings()
+		if ss == nil {
+			continue
+		}
+		tps, _ := inbound.GetProxySettings().GetInstance()
+		if tps == nil {
+			continue
+		}
+		ps, ok := tps.(*vlessInbound.Config)
+		if ss.GetMethodName() != "tcp" && ok && ps.Fallbacks != nil && len(ps.Fallbacks) > 0 {
+			return errors.New(`VLESS fallback doesn't support "` + ss.GetMethodName() + `" transport`)
+		}
+	}
+	return nil
+}
+
 func init() {
 	RegisterConfigureFilePostProcessingStage(outboundTransportSecurityCheck)
 	RegisterConfigureFilePostProcessingStage(vlessVisionTransportCompatCheck)
