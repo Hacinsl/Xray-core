@@ -1056,7 +1056,7 @@ func masqueTransportMuxCheck(conf *core.Config) error {
 		ss := tss.(*proxyman.SenderConfig)
 		if outbound.GetProxySettings().GetType() == serial.GetMessageType(&pmasque.ClientConfig{}) {
 			if ms := ss.MultiplexSettings; ms != nil && ms.Enabled {
-				return errors.New(`masque outbound does not support "mux"`)
+				return errors.New("Outbound tag " + outbound.GetTag() + `: masque outbound does not support "mux"`)
 			}
 		}
 	}
@@ -1085,7 +1085,7 @@ func splithttpTlsAlpnMixCheck(conf *core.Config) error {
 			if ss2, ok := tss2.(*tls.Config); ok {
 				alpn := ss2.GetNextProtocol()
 				if slices.Contains(alpn, "h3") && len(alpn) > 1 {
-					return errors.New(`HTTP/3 cannot be used in conjunction with other protocol versions("alpn").`)
+					return errors.New("Inbound tag " + inbound.GetTag() + `: HTTP/3 cannot be used in conjunction with other protocol versions("alpn").`)
 				}
 			}
 		}
@@ -1111,7 +1111,7 @@ func splithttpTlsAlpnMixCheck(conf *core.Config) error {
 			if ss3, ok := tss3.(*tls.Config); ok {
 				alpn := ss3.GetNextProtocol()
 				if slices.Contains(alpn, "h3") && len(alpn) > 1 {
-					return errors.New(`HTTP/3 cannot be used in conjunction with other protocol versions("alpn").`)
+					return errors.New("Outbound tag " + outbound.GetTag() + `: HTTP/3 cannot be used in conjunction with other protocol versions("alpn").`)
 				}
 			}
 		}

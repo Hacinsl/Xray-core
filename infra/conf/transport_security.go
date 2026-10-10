@@ -446,7 +446,7 @@ func realityTransportCompatCheck(conf *core.Config) error {
 			continue
 		}
 		if ss.SecurityType == serial.GetMessageType(&reality.Config{}) && ss.MethodName != "tcp" && ss.MethodName != "splithttp" && ss.MethodName != "grpc" {
-			return errors.New("REALITY only supports RAW, XHTTP and gRPC for now.")
+			return errors.New("Inbound tag " + inbound.GetTag() + ": REALITY only supports RAW, XHTTP and gRPC for now.")
 		}
 	}
 	for _, outbound := range conf.Outbound {
@@ -460,7 +460,7 @@ func realityTransportCompatCheck(conf *core.Config) error {
 			continue
 		}
 		if ss2.SecurityType == serial.GetMessageType(&reality.Config{}) && ss2.MethodName != "tcp" && ss2.MethodName != "splithttp" && ss2.MethodName != "grpc" {
-			return errors.New("REALITY only supports RAW, XHTTP and gRPC for now.")
+			return errors.New("Outbound tag " + outbound.GetTag() + ": REALITY only supports RAW, XHTTP and gRPC for now.")
 		}
 	}
 	return nil

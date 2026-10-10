@@ -18,6 +18,7 @@ import (
 	"github.com/xtls/xray-core/proxy/vless"
 	vlessInbound "github.com/xtls/xray-core/proxy/vless/inbound"
 	vlessOutbound "github.com/xtls/xray-core/proxy/vless/outbound"
+	vmessOutbound "github.com/xtls/xray-core/proxy/vmess/outbound"
 	"github.com/xtls/xray-core/transport/internet"
 	"github.com/xtls/xray-core/transport/internet/reality"
 	"github.com/xtls/xray-core/transport/internet/tls"
@@ -687,6 +688,47 @@ func outboundTransportSecurityCheck(conf *core.Config) error {
 	return nil
 }
 
+func outboundMuxCompatCheck(conf *core.Config) error {
+	for _, outbound := range conf.Outbound {
+		tss, _ := outbound.GetSenderSettings().GetInstance()
+		if tss == nil {
+			continue
+		}
+		ss := tss.(*proxyman.SenderConfig)
+		if ss.MultiplexSettings != nil && ss.MultiplexSettings.Enabled == true {
+			tps, _ := outbound.GetProxySettings().GetInstance()
+			if tps == nil {
+				continue
+			}
+			ps, isVless := tps.(*vlessOutbound.Config)
+			_, isVmess := tps.(*vmessOutbound.Config)
+			if !isVless && !isVmess {
+				return errors.New("Outbound tag " + outbound.GetTag() + `: "mux" is only available for VLESS and VMess outbounds.`)
+			}
+			ss2 := ss.GetStreamSettings()
+			if ss2 == nil {
+				continue
+			}
+			if ss2.GetMethodName() == "splithttp" {
+				return errors.New("Outbound tag " + outbound.GetTag() + `: classic "mux" doesn't support the XHTTP (splithttp) transport, use "xmux" in "methodSettings" instead.`)
+			}
+			if isVless {
+				user := ps.Vnext.GetUser()
+				ta, _ := user.Account.GetInstance()
+				if ta == nil {
+					continue
+				}
+				if a, ok := ta.(*vless.Account); ok {
+					if a.Flow == vless.XRV && ss.MultiplexSettings.Concurrency >= 0 {
+						return errors.New("Outbound tag " + outbound.GetTag() + `: flow "xtls-rprx-vision" (XTLS Vision) is incompatible with classic "mux" ("concurrency" >= 0), which will break Mux connections that contain TCP requests. Set "concurrency" to -1 and use "xudpConcurrency" for UDP instead.`)
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
 func vlessVisionTransportCompatCheck(conf *core.Config) error {
 	for _, inbound := range conf.Inbound {
 		trs, _ := inbound.GetReceiverSettings().GetInstance()
@@ -786,4 +828,6 @@ func vlessFallbackTransportCompatCheck(conf *core.Config) error {
 func init() {
 	RegisterConfigureFilePostProcessingStage(outboundTransportSecurityCheck)
 	RegisterConfigureFilePostProcessingStage(vlessVisionTransportCompatCheck)
+	RegisterConfigureFilePostProcessingStage(vlessFallbackTransportCompatCheck)
+	RegisterConfigureFilePostProcessingStage(outboundMuxCompatCheck)
 }
