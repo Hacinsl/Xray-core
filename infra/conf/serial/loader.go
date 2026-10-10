@@ -53,6 +53,7 @@ func DecodeJSONConfig(reader io.Reader) (*conf.Config, error) {
 		Reader: reader,
 	}, jsonContent)
 	decoder := json.NewDecoder(jsonReader)
+	decoder.DisallowUnknownFields()
 
 	if err := decoder.Decode(jsonConfig); err != nil {
 		var pos *offset

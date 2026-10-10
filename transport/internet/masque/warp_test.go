@@ -92,8 +92,8 @@ func warpServerTLS(t *testing.T, client *ecdsa.PublicKey, alpn string) (*gotls.C
 
 func warpStreamSettings(key, publicKey []byte, alpn ...string) *internet.MemoryStreamConfig {
 	return &internet.MemoryStreamConfig{
-		ProtocolName: protocolName,
-		ProtocolSettings: &Config{Host: WarpHost, Path: WarpPath, Warp: &Warp{
+		MethodName: protocolName,
+		MethodSettings: &Config{Host: WarpHost, Path: WarpPath, Warp: &Warp{
 			PrivateKey: key,
 			PublicKey:  publicKey,
 			Address:    []string{warpLocal4.String(), warpLocal6.String()},

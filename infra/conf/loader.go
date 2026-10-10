@@ -1,6 +1,7 @@
 package conf
 
 import (
+	"bytes"
 	"encoding/json"
 	"strings"
 
@@ -48,7 +49,9 @@ func (v *JSONConfigLoader) LoadWithID(raw []byte, id string) (interface{}, error
 	if err != nil {
 		return nil, err
 	}
-	if err := json.Unmarshal(raw, config); err != nil {
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(config); err != nil {
 		return nil, err
 	}
 	return config, nil
